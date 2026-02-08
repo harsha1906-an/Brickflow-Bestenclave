@@ -17,7 +17,7 @@ import { selectCurrentItem } from '@/redux/erp/selectors';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { useMoney } from '@/settings';
 import { useNavigate } from 'react-router-dom';
-import request from '@/request';
+import { request } from '@/request';
 
 const Item = ({ item, currentErp }) => {
     const { moneyFormatter } = useMoney();

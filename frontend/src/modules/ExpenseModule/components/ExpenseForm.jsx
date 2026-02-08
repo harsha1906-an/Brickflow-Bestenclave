@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { request } from '@/request';
 import { Form, Input, InputNumber, Select, Radio, Checkbox, Divider, Descriptions } from 'antd';
 import { DatePicker } from 'antd';
@@ -94,14 +96,6 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
             });
         }
     }, [amount, taxRate, paymentType, supplierState, projectState, form]);
-
-
-    const form = Form.useFormInstance();
-    const { state } = useAppContext();
-    const companyId = state.currentCompany;
-
-    const recipientType = Form.useWatch('recipientType', form);
-    const amount = Form.useWatch('amount', form);
 
     useEffect(() => {
         if (companyId) {
