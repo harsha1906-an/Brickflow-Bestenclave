@@ -40,6 +40,18 @@ const InstallApp = () => {
 
     return (
         <>
+            <div style={{
+                position: 'fixed',
+                top: '100px',
+                right: '10px',
+                background: 'red',
+                color: 'white',
+                padding: '10px',
+                zIndex: 9999,
+                border: '3px solid yellow'
+            }}>
+                DEBUG: InstallApp Loaded!
+            </div>
             <Button
                 type="primary"
                 icon={<DownloadOutlined />}
