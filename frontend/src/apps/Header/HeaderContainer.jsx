@@ -100,12 +100,16 @@ export default function HeaderContent() {
         position: 'relative',
       }}
     >
-      <div style={{ position: 'absolute', right: '110px' }}>
-        <ThemeToggle />
-      </div>
-      <div style={{ position: 'absolute', right: '60px' }}>
-        <InstallApp />
-      </div>
+      {!isMobile && (
+        <>
+          <div style={{ position: 'absolute', right: '170px' }}>
+            <InstallApp />
+          </div>
+          <div style={{ position: 'absolute', right: '110px' }}>
+            <ThemeToggle />
+          </div>
+        </>
+      )}
 
       {isMobile && (
         <div className="mobile-header-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer', position: 'absolute', top: '75%', left: '50%', transform: 'translate(-50%, -50%)' }}>

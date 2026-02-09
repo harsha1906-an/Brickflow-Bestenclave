@@ -42,7 +42,6 @@ const InstallApp = () => {
                 type="primary"
                 icon={<DownloadOutlined />}
                 onClick={handleInstallClick}
-                style={{ marginRight: 16 }}
             >
                 Install App
             </Button>
