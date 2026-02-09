@@ -100,15 +100,13 @@ export default function HeaderContent() {
         position: 'relative',
       }}
     >
+      <div style={{ position: 'absolute', right: isMobile ? '60px' : '170px' }}>
+        <InstallApp />
+      </div>
       {!isMobile && (
-        <>
-          <div style={{ position: 'absolute', right: '170px' }}>
-            <InstallApp />
-          </div>
-          <div style={{ position: 'absolute', right: '110px' }}>
-            <ThemeToggle />
-          </div>
-        </>
+        <div style={{ position: 'absolute', right: '110px' }}>
+          <ThemeToggle />
+        </div>
       )}
 
       {isMobile && (
