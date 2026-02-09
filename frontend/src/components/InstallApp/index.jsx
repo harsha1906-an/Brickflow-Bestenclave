@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Button } from 'antd';
+import { Button, Modal } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 
 const InstallApp = () => {
     const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [showInstructions, setShowInstructions] = useState(false);
 
     useEffect(() => {
         const handler = (e) => {
@@ -29,20 +30,58 @@ const InstallApp = () => {
                 }
                 setDeferredPrompt(null);
             });
+        } else {
+            // Show instructions modal
+            setShowInstructions(true);
         }
     };
 
-    if (!deferredPrompt) return null;
-
     return (
-        <Button
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleInstallClick}
-            style={{ marginRight: 16 }}
-        >
-            Install App
-        </Button>
+        <>
+            <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={handleInstallClick}
+                style={{ marginRight: 16 }}
+            >
+                Install App
+            </Button>
+
+            <Modal
+                title="Install Brick Flow App"
+                open={showInstructions}
+                onCancel={() => setShowInstructions(false)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setShowInstructions(false)}>
+                        Close
+                    </Button>
+                ]}
+            >
+                <div>
+                    <h4>To install this app on your device:</h4>
+                    
+                    <h5>Chrome/Edge (Desktop):</h5>
+                    <ol>
+                        <li>Click the install icon (⊕) in the address bar</li>
+                        <li>Or click menu (⋮) → "Install Brick Flow..."</li>
+                    </ol>
+
+                    <h5>Chrome/Edge (Mobile):</h5>
+                    <ol>
+                        <li>Tap menu (⋮) → "Add to Home screen"</li>
+                        <li>Tap "Install" or "Add"</li>
+                    </ol>
+
+                    <h5>Safari (iOS):</h5>
+                    <ol>
+                        <li>Tap the Share button (□↑)</li>
+                        <li>Scroll and tap "Add to Home Screen"</li>
+                    </ol>
+
+                    <p><strong>Note:</strong> App installation requires HTTPS. If you don't see the install option, please ensure you're accessing the app via a secure connection.</p>
+                </div>
+            </Modal>
+        </>
     );
 };
 
