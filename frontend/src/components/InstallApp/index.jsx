@@ -7,9 +7,11 @@ const InstallApp = () => {
     const [showInstructions, setShowInstructions] = useState(false);
 
     useEffect(() => {
+        console.log('InstallApp component mounted');
         const handler = (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
+            console.log('beforeinstallprompt event captured');
         };
 
         window.addEventListener('beforeinstallprompt', handler);
@@ -42,6 +44,12 @@ const InstallApp = () => {
                 type="primary"
                 icon={<DownloadOutlined />}
                 onClick={handleInstallClick}
+                data-testid="install-app-button"
+                style={{ 
+                    display: 'block',
+                    visibility: 'visible',
+                    zIndex: 1000
+                }}
             >
                 Install App
             </Button>
