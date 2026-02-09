@@ -71,19 +71,29 @@ export default function CustomerRead() {
             key: '1',
             label: translate('Details'),
             children: (
-                <Descriptions title={translate('Client Info')} bordered column={2}>
-                    <Descriptions.Item label={translate('Name')}>{client.name}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Email')}>{client.email}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Phone')}>{client.phone}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Address')}>{client.address}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Customer ID')}>{client.customerId}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Gender')}>{client.gender ? translate(client.gender) : ''}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Father Name')}>{client.fatherName}</Descriptions.Item>
-                    <Descriptions.Item label={translate('DOB')}>{client.dob ? dayjs(client.dob).format(dateFormat) : ''}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Aadhar Card Number')}>{client.aadharCardNumber}</Descriptions.Item>
-                    <Descriptions.Item label={translate('PAN Card Number')}>{client.panCardNumber}</Descriptions.Item>
-                    <Descriptions.Item label={translate('Driving Licence')} span={2}>{client.drivingLicence}</Descriptions.Item>
-                </Descriptions>
+                <>
+                    <Descriptions title={translate('Client Info')} bordered column={2}>
+                        <Descriptions.Item label={translate('Name')}>{client.name}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Email')}>{client.email}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Phone')}>{client.phone}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Address')}>{client.address}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Customer ID')}>{client.customerId}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Gender')}>{client.gender ? translate(client.gender) : ''}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Father Name')}>{client.fatherName}</Descriptions.Item>
+                        <Descriptions.Item label={translate('DOB')}>{client.dob ? dayjs(client.dob).format(dateFormat) : ''}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Aadhar Card Number')}>{client.aadharCardNumber}</Descriptions.Item>
+                        <Descriptions.Item label={translate('PAN Card Number')}>{client.panCardNumber}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Driving Licence')} span={2}>{client.drivingLicence}</Descriptions.Item>
+                    </Descriptions>
+                    <Descriptions title={translate('Nominee Details')} bordered column={2} style={{ marginTop: '20px' }}>
+                        <Descriptions.Item label={translate('Nominee Name')}>{client.nomineeName}</Descriptions.Item>
+                        <Descriptions.Item label={translate("Father's / Husband's Name")}>{client.nomineeFatherHusbandName}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Relationship')}>{client.nomineeRelationship}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Date of Birth')}>{client.nomineeDob ? dayjs(client.nomineeDob).format(dateFormat) : ''}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Mobile Number')}>{client.nomineeMobile}</Descriptions.Item>
+                        <Descriptions.Item label={translate('Address')}>{client.nomineeAddress}</Descriptions.Item>
+                    </Descriptions>
+                </>
             ),
         },
         {

@@ -184,28 +184,40 @@ const DailyReport = () => {
         <Card>
             {contextHolder}
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Space>
-                        <h2 style={{ margin: 0 }}>Daily Summary</h2>
-                    </Space>
-                    <Space>
-                        <span style={{ fontSize: '12px', color: '#666' }}>View:</span>
-                        <DatePicker value={date} onChange={setDate} allowClear={false} style={{ width: 120 }} />
-                        <Button icon={<ReloadOutlined />} onClick={fetchSummary} loading={loading} />
-                        <Button type="primary" onClick={handleAddExpense}>Add Expense</Button>
-                        <Button icon={<PrinterOutlined />} onClick={handleDownloadDaily} disabled={!summary} title="Download Daily Report" />
-                    </Space>
-                    <Space>
-                        <span style={{ fontSize: '12px', color: '#666' }}>Download Report:</span>
-                        <DatePicker.RangePicker
-                            value={reportRange}
-                            onChange={setReportRange}
-                            format="DD/MM/YYYY"
-                            allowClear={false}
-                            style={{ width: 240 }}
-                        />
-                        <Button icon={<DownloadOutlined />} onClick={handleDownloadRange}>PDF</Button>
-                    </Space>
+                <div style={{ marginBottom: 16 }}>
+                    <Row gutter={[16, 16]} align="middle" justify="space-between">
+                        <Col xs={24} md={6}>
+                            <h2 style={{ margin: 0 }}>Daily Summary</h2>
+                        </Col>
+                        <Col xs={24} md={18}>
+                            <Row gutter={[8, 8]} justify="end" align="middle">
+                                <Col xs={24} sm={6}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <DatePicker value={date} onChange={setDate} allowClear={false} style={{ width: '100%' }} />
+                                        <Button icon={<ReloadOutlined />} onClick={fetchSummary} loading={loading} />
+                                    </div>
+                                </Col>
+                                <Col xs={12} sm={6}>
+                                    <Button type="primary" onClick={handleAddExpense} style={{ width: '100%' }}>Add Expense</Button>
+                                </Col>
+                                <Col xs={12} sm={2}>
+                                    <Button icon={<PrinterOutlined />} onClick={handleDownloadDaily} disabled={!summary} title="Download Daily Report" style={{ width: '100%' }} />
+                                </Col>
+                                <Col xs={24} sm={10}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <DatePicker.RangePicker
+                                            value={reportRange}
+                                            onChange={setReportRange}
+                                            format="DD/MM/YYYY"
+                                            allowClear={false}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <Button icon={<DownloadOutlined />} onClick={handleDownloadRange}>PDF</Button>
+                                    </div>
+                                </Col>
+                            </Row>
+                        </Col>
+                    </Row>
                 </div>
 
                 {loading ? (
@@ -213,7 +225,7 @@ const DailyReport = () => {
                 ) : summary ? (
                     <>
                         <Row gutter={[16, 16]}>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Card bordered={true}>
                                     <Statistic
                                         title="Labour Wages (Net)"
@@ -227,7 +239,7 @@ const DailyReport = () => {
                                     </div>
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Card bordered={true}>
                                     <Statistic
                                         title="Petty Cash Expenses"
@@ -241,7 +253,7 @@ const DailyReport = () => {
                                     </div>
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={8}>
                                 <Card bordered={true}>
                                     <Statistic
                                         title="Customer Collections"
@@ -256,8 +268,8 @@ const DailyReport = () => {
                         </Row>
 
                         <Card title="Detailed Breakdown" size="small">
-                            <Row gutter={32}>
-                                <Col span={12}>
+                            <Row gutter={[16, 32]}>
+                                <Col xs={24} md={12}>
                                     <h4>Labour Adjustments</h4>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                         <span>Total Advances Deducted:</span>
@@ -268,7 +280,7 @@ const DailyReport = () => {
                                         <b style={{ color: 'red' }}>-{moneyFormatter({ amount: summary.labour.penalties })}</b>
                                     </div>
                                 </Col>
-                                <Col span={12}>
+                                <Col xs={24} md={12}>
                                     <h4>Expense Breakdown</h4>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                         <span>Supplier Payments:</span>
@@ -288,7 +300,7 @@ const DailyReport = () => {
                                         <b style={{ color: 'red' }}>-{moneyFormatter({ amount: summary.expenses?.amount || 0 })}</b>
                                     </div>
                                 </Col>
-                                <Col span={12}>
+                                <Col xs={24} md={12}>
                                     <h4>Inventory Activity</h4>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                         <span>Materials Received (In):</span>

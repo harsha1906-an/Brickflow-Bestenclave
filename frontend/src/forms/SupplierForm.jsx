@@ -82,6 +82,7 @@ export default function SupplierForm({ isUpdateForm = false }) {
                             <Select.Option value="Karnataka">Karnataka</Select.Option>
                             <Select.Option value="Kerala">Kerala</Select.Option>
                             <Select.Option value="Andhra Pradesh">Andhra Pradesh</Select.Option>
+                            <Select.Option value="Tamil Nadu">Tamil Nadu</Select.Option>
                         </Select>
                     </Form.Item>
                 </Col>
@@ -90,11 +91,7 @@ export default function SupplierForm({ isUpdateForm = false }) {
                         <Input />
                     </Form.Item>
                 </Col>
-                <Col span={12}>
-                    <Form.Item label="Tax Number (GST/VAT)" name="taxNumber">
-                        <Input />
-                    </Form.Item>
-                </Col>
+
                 <Col span={12}>
                     <Form.Item label="Credit Period (Days)" name="creditPeriod">
                         <InputNumber style={{ width: '100%' }} />

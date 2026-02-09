@@ -41,8 +41,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(compression());
 
-// // default options
-// app.use(fileUpload());
+// Handle redundant /api/api/ prefixes from cached clients
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/api/')) {
+    req.url = req.url.replace('/api/api/', '/api/');
+  }
+  next();
+});
 
 // Here our API Routes
 

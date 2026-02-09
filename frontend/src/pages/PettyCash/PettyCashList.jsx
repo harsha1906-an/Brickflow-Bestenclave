@@ -165,77 +165,82 @@ const PettyCashList = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-                <Col span={8}>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Total Cash Received" value={summary.totalInward} precision={2} prefix={<WalletOutlined />} valueStyle={{ color: '#3f8600' }} />
                     </Card>
                 </Col>
-                <Col span={8}>
+                <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Total Expenses" value={summary.totalOutward} precision={2} prefix={<MinusOutlined />} valueStyle={{ color: '#cf1322' }} />
                     </Card>
                 </Col>
-                <Col span={8}>
+                <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Current Balance" value={summary.balance} precision={2} prefix={<WalletOutlined />} valueStyle={{ color: summary.balance < 0 ? '#cf1322' : '#1890ff' }} />
                     </Card>
                 </Col>
             </Row>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h2 style={{ margin: 0 }}>Petty Cash Ledger</h2>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ marginRight: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        {/* Daily Report Section - Petty Cash Book */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ fontSize: '12px', color: '#666' }}>Date:</span>
-                            <DatePicker
-                                value={reportDate}
-                                onChange={setReportDate}
-                                format="DD/MM/YYYY"
-                                allowClear={false}
-                                style={{ width: 130 }}
-                            />
-                            <Button
-                                icon={<PrinterOutlined />}
-                                onClick={handleDownloadDailyReport}
-                                title="Download Petty Cash Book (Daily)"
-                            />
-                        </div>
-
-                        <div style={{ width: 1, height: 24, background: '#d9d9d9' }} />
-
-                        {/* Range Report Section - Petty Cash Book Only */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <span style={{ fontSize: '12px', color: '#666' }}>Date Range:</span>
-                            <DatePicker.RangePicker
-                                value={reportRange}
-                                onChange={setReportRange}
-                                format="DD/MM/YYYY"
-                                allowClear={false}
-                                style={{ width: 240 }}
-                            />
-                            <Button
-                                icon={<PrinterOutlined />}
-                                onClick={handleDownloadRangeReport}
-                                title="Download Petty Cash Book"
-                            >
-                                Download Book
-                            </Button>
-                        </div>
-                    </div>
-                    {role === 'OWNER' && (
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal('inward')} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>
-                            Add Cash
-                        </Button>
-                    )}
-                    {(role === 'OWNER' || role === 'ENGINEER') && (
-                        <Button type="primary" danger icon={<MinusOutlined />} onClick={() => openModal('outward')}>
-                            Log Expense
-                        </Button>
-                    )}
-                </div>
+            <div style={{ marginBottom: 16 }}>
+                <Row gutter={[16, 16]} align="middle" justify="space-between">
+                    <Col xs={24} md={6}>
+                        <h2 style={{ margin: 0 }}>Petty Cash Ledger</h2>
+                    </Col>
+                    <Col xs={24} md={18}>
+                        <Row gutter={[16, 16]} justify="end" align="middle">
+                            <Col xs={24} sm={10}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>Date:</span>
+                                    <DatePicker
+                                        value={reportDate}
+                                        onChange={setReportDate}
+                                        format="DD/MM/YYYY"
+                                        allowClear={false}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <Button
+                                        icon={<PrinterOutlined />}
+                                        onClick={handleDownloadDailyReport}
+                                        title="Download Petty Cash Book (Daily)"
+                                    />
+                                </div>
+                            </Col>
+                            <Col xs={24} sm={14}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <span style={{ fontSize: '12px', color: '#666' }}>Range:</span>
+                                    <DatePicker.RangePicker
+                                        value={reportRange}
+                                        onChange={setReportRange}
+                                        format="DD/MM/YYYY"
+                                        allowClear={false}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <Button
+                                        icon={<PrinterOutlined />}
+                                        onClick={handleDownloadRangeReport}
+                                        title="Download Petty Cash Book"
+                                    />
+                                </div>
+                            </Col>
+                            <Col xs={12} sm={4}>
+                                {role === 'OWNER' && (
+                                    <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal('inward')} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', width: '100%' }}>
+                                        Add
+                                    </Button>
+                                )}
+                            </Col>
+                            <Col xs={12} sm={4}>
+                                {(role === 'OWNER' || role === 'ENGINEER') && (
+                                    <Button type="primary" danger icon={<MinusOutlined />} onClick={() => openModal('outward')} style={{ width: '100%' }}>
+                                        Log
+                                    </Button>
+                                )}
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
             </div>
 
             <Table
@@ -244,6 +249,7 @@ const PettyCashList = () => {
                 dataSource={data}
                 loading={loading}
                 pagination={{ pageSize: 10 }}
+                scroll={{ x: 700 }}
                 style={{ borderRadius: '8px', overflow: 'hidden' }}
             />
 

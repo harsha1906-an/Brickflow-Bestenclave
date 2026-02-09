@@ -3,6 +3,7 @@ html
   head
     meta(charset="utf-8")
     title Booking Receipt
+    link(href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet")
     style.
       * {
         box-sizing: border-box;
@@ -12,7 +13,7 @@ html
         margin: 0;
       }
       body {
-        font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+        font-family: 'Noto Sans', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
         margin: 0;
         padding: 0;
         color: #333;
@@ -174,8 +175,8 @@ html
           //- Based on image "BEST ENCLAVE" is text next to logo.
           div.company-name #{settings.construction_company_name || 'BEST CONSTRUCTIONS'}
           p.contact-info Cell: #{settings.company_phone || '99524 52139, 73391 11784'}
-          if settings.construction_gstin
-             p.contact-info GSTIN: #{settings.construction_gstin}
+          if settings.construction_gstin || settings.company_gstin
+             p.contact-info GSTIN: #{settings.construction_gstin || settings.company_gstin}
         .address-section
           div E: #{settings.company_email || 'bestenclave@gmail.com'}
           div #{settings.construction_address || 'Tamil Nadu, India'}

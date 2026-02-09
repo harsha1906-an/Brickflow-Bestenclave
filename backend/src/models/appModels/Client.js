@@ -18,9 +18,11 @@ const schema = new mongoose.Schema({
     type: String,
     validate: {
       validator: function (v) {
-        return !v || /^[0-9]{10}$/.test(v);
+        // Allow 10-digit numbers OR numbers with country code (e.g., +91, 0091)
+        // Regex: Optional + or 00, followed by digits, totaling 10-15 digits
+        return !v || /^(\+|00)?[0-9\-\s]{10,15}$/.test(v.replace(/[\-\s]/g, ''));
       },
-      message: (props) => `${props.value} is not a valid 10-digit phone number!`,
+      message: (props) => `${props.value} is not a valid phone number!`,
     },
   },
   country: String,

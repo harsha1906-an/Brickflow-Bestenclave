@@ -99,13 +99,22 @@ exports.generatePdf = async (
 
       const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage', // Handle Docker/AWS memory limits
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process', // <- this one doesn't works in Windows
+          '--disable-gpu'
+        ],
         ignoreDefaultArgs: ['--disable-extensions'],
       });
 
       const page = await browser.newPage();
       await page.setContent(htmlContent, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'networkidle0',
       });
       console.log('Page Content Set. Generating PDF Buffer...');
 

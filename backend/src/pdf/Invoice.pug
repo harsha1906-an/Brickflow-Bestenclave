@@ -2,6 +2,7 @@ doctype html
 html
   head
     link(rel="shortcut icon" type="image/png" href="/images/icons/favicon.png")
+    link(href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet")
     meta(name="viewport" content="width=device-width, initial-scale=1")
     style.
       .sheet {
@@ -15,7 +16,7 @@ html
         margin: 0;
         padding: 0px ;
         background: #ffffff;
-        font-family: sans-serif;
+        font-family: 'Noto Sans', sans-serif;
         font-size:12px;
         color:#222
       }
@@ -262,7 +263,8 @@ html
               p.strong #{settings.company_name}
               p #{settings.company_address}
               p #{settings.company_reg_number}
-              
+              if settings.company_gstin
+                p GSTIN: #{settings.company_gstin}
         .col.col-24
           .space  
         .left.col-14

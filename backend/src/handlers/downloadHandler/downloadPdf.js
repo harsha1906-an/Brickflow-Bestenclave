@@ -59,6 +59,9 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
       if (directory === 'supplier') {
         modelName = 'supplierDetails';
       }
+      if (directory === 'inventoryreport') {
+        modelName = 'InventoryReport';
+      }
 
       // Continue process if result is returned
 

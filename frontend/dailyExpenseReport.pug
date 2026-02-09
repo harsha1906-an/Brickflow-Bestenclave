@@ -1,0 +1,121 @@
+doctype html
+html
+  head
+    meta(charset="UTF-8")
+    style.
+      @page {
+        size: A4;     
+        margin: 15mm; 
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      .details-table th, .details-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      .details-table th {
+        background-color: #f2f2f2;
+      }
+      .income {
+        color: #28a745;
+      }
+      .expense {
+        color: #dc3545;
+      }
+      .total-row {
+        font-weight: bold;
+        background-color: #e8f4fd;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      .signature-section {
+        margin-top: 50px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .signature-box {
+        width: 200px;
+        text-align: center;
+        border-top: 1px solid #333;
+        padding-top: 5px;
+      }
+      .company-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .logo{
+        width: 70px;
+        float: left;
+      }
+      .date-right {
+        float: right;
+      }
+      .clearfix::after {
+        content: "";
+        clear: both;
+        display: table;
+      }
+        
+  body
+    header.clearfix
+      .company-header
+        if logo
+          img.logo(src=logo)
+        h3.strong.date-right #{'Date: ' + moment(date).format('DD/MM/YYYY') }
+        div(style="clear:both;")
+        h1 Daily Summary
+        div(style="text-align: left; margin-top: 10px;")
+          p.strong #{settings.company_name}
+          p #{settings.company_address}
+          p #{'Phone: ' + settings.company_phone + ' | Email: ' + settings.company_email}
+        
+    main
+      table.details-table
+        thead
+          tr
+            th #
+            th Category
+            th Party / Source
+            th Description / Villa
+            th(style="text-align: right;") Income
+            th(style="text-align: right;") Expense      
+        tbody
+          each item, i in items ? items : []
+            tr
+              td = i + 1
+              td = item.category
+              td = item.partySource
+              td = item.descriptionVilla || '-'
+              td(style="text-align: right;")
+                if item.income > 0
+                  span.income &#8377; #{item.income.toFixed(2).replace(/\d(?=(\d{3})+(\D?))/g, '$&,')}
+              td(style="text-align: right;")
+                if item.expense > 0
+                  span.expense &#8377; #{item.expense.toFixed(2).replace(/\d(?=(\d{3})+(\D?))/g, '$&,')}
+        tfoot
+          tr.total-row
+            td(colspan="4", style="text-align: right;") Totals:
+            td(style="text-align: right;")
+              span.income &#8377; #{totalIncome.toFixed(2).replace(/\d(?=(\d{3})+(\D?))/g, '$&,')}
+            td(style="text-align: right;")
+              span.expense &#8377; #{totalExpense.toFixed(2).replace(/\d(?=(\d{3})+(\D?))/g, '$&,')}
+
+      div(style="display: flex; justify-content: flex-end;")
+        table(style="width: 250px; margin-top: 20px; border-collapse: collapse;")
+          tr.total-row
+            td(style="text-align: right; padding: 8px; border: 1px solid #ddd;") Net Balance:
+            td(style="text-align: right; padding: 8px; border: 1px solid #ddd;")
+              span.value(class=netBalance > 0 ? 'income' : 'expense', style="font-size: 16px;")
+                | &#8377; #{netBalance.toFixed(2).replace(/\d(?=(\d{3})+(\D?))/g, '$&,')}
+      
+    div.signature-section
+      div.signature-box Authorized Signature
+      div.signature-box Receiver's Signature

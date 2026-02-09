@@ -56,17 +56,23 @@ const CustomerList = () => {
         fetchCustomers();
     }, []);
 
+    useEffect(() => {
+        if (modalOpen) {
+            if (editing) {
+                form.setFieldsValue({
+                    ...editing,
+                    dob: editing.dob ? dayjs(editing.dob) : null,
+                    nomineeDob: editing.nomineeDob ? dayjs(editing.nomineeDob) : null
+                });
+            } else {
+                form.resetFields();
+            }
+        }
+    }, [modalOpen, editing, form]);
+
     const openModal = (record = null) => {
         setEditing(record);
         setModalOpen(true);
-        if (record) {
-            form.setFieldsValue({
-                ...record,
-                dob: record.dob ? dayjs(record.dob) : null
-            });
-        } else {
-            form.resetFields();
-        }
     };
 
     const handleOk = async () => {

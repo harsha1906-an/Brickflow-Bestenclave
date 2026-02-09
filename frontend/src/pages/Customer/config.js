@@ -48,4 +48,29 @@ export const fields = {
     type: 'string',
     label: 'Driving Licence',
   },
+  // Nominee Details
+  nomineeName: {
+    type: 'string',
+    label: 'Nominee Name',
+  },
+  nomineeFatherHusbandName: {
+    type: 'string',
+    label: "Father's / Husband's Name",
+  },
+  nomineeRelationship: {
+    type: 'string',
+    label: 'Relationship',
+  },
+  nomineeDob: {
+    type: 'date',
+    label: 'Date of Birth (Nominee)',
+  },
+  nomineeMobile: {
+    type: 'phone',
+    label: 'Mobile Number (Nominee)',
+  },
+  nomineeAddress: {
+    type: 'textarea',
+    label: 'Address (Nominee)',
+  },
 };

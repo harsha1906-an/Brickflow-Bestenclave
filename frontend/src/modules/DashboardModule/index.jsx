@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Tag, Row, Col, Button, Card, Radio, Space } from 'antd';
+import { Tag, Row, Col, Button, Card, Radio, Space, Skeleton } from 'antd';
 import { SettingOutlined, CalendarOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import axios from 'axios';
@@ -235,6 +235,33 @@ export default function DashboardModule() {
     );
   });
 
+  // Skeleton card component
+  const SummaryCardSkeleton = () => (
+    <Col className="gutter-row" xs={{ span: 24 }} sm={{ span: 12 }} md={{ span: 12 }} lg={{ span: 6 }}>
+      <div className="whiteBox shadow" style={{ minHeight: '120px', height: '100%', padding: '15px' }}>
+        <Skeleton active paragraph={{ rows: 2 }} />
+      </div>
+    </Col>
+  );
+
+  const TableSkeleton = () => (
+    <div className="whiteBox shadow" style={{ minHeight: 458, padding: '20px' }}>
+      <Skeleton active paragraph={{ rows: 8 }} />
+    </div>
+  );
+
+  const CustomerCardSkeleton = () => (
+    <div className="whiteBox shadow" style={{ minHeight: 200, padding: '20px' }}>
+      <Skeleton active paragraph={{ rows: 4 }} />
+    </div>
+  );
+
+  const ChartSkeleton = () => (
+    <div className="whiteBox shadow" style={{ height: 400, padding: '20px' }}>
+      <Skeleton active paragraph={{ rows: 10 }} />
+    </div>
+  );
+
   if (money_format_settings) {
     const isMobile = window.innerWidth <= 768;
     const gutterSize = isMobile ? [12, 12] : [24, 24];
@@ -257,64 +284,88 @@ export default function DashboardModule() {
         {config.chart && (
           <Row gutter={gutterSize} style={{ marginBottom: '24px' }}>
             <Col className="gutter-row" span={24}>
-              <DashboardChart data={analyticsResult || []} isLoading={analyticsLoading} />
+              {analyticsLoading ? (
+                <ChartSkeleton />
+              ) : (
+                <DashboardChart data={analyticsResult || []} isLoading={analyticsLoading} />
+              )}
             </Col>
           </Row>
         )}
 
         <Row gutter={gutterSize}>
           {config.quoteSummary && (
-            <SummaryCard
-              title={translate('Quote')}
-              prefix={translate('This month')}
-              isLoading={quoteLoading}
-              data={quoteResult?.total}
-            />
+            quoteLoading ? (
+              <SummaryCardSkeleton />
+            ) : (
+              <SummaryCard
+                title={translate('Quote')}
+                prefix={translate('This month')}
+                isLoading={quoteLoading}
+                data={quoteResult?.total}
+              />
+            )
           )}
 
           {config.paymentSummary && (
-            <SummaryCard
-              title={translate('paid')}
-              prefix={translate('This month')}
-              isLoading={paymentLoading}
-              data={paymentResult?.total}
-            />
+            paymentLoading ? (
+              <SummaryCardSkeleton />
+            ) : (
+              <SummaryCard
+                title={translate('paid')}
+                prefix={translate('This month')}
+                isLoading={paymentLoading}
+                data={paymentResult?.total}
+              />
+            )
           )}
 
           {config.dailyCost && (
-            <SummaryCard
-              title={'Total Daily Cost'}
-              prefix={'Today'}
-              isLoading={dailyLoading}
-              data={dailyResult?.total}
-            />
+            dailyLoading ? (
+              <SummaryCardSkeleton />
+            ) : (
+              <SummaryCard
+                title={'Total Daily Cost'}
+                prefix={'Today'}
+                isLoading={dailyLoading}
+                data={dailyResult?.total}
+              />
+            )
           )}
         </Row>
         <div className="space30"></div>
         <Row gutter={gutterSize}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
-            <div className="whiteBox shadow" style={{ minHeight: 458, maxHeight: 600, overflowY: 'auto' }}>
-              <div className="pad20">
-                <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
-                  {translate('Villa Construction Progress')}
-                </h3>
-                {config.statisticCards ? (
-                  <VillaProgressList villas={villasProgress} isLoading={villasLoading} />
-                ) : (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-                    {translate('Progress tracking hidden')}
-                  </div>
-                )}
+            {villasLoading ? (
+              <TableSkeleton />
+            ) : (
+              <div className="whiteBox shadow" style={{ minHeight: 458, maxHeight: 600, overflowY: 'auto' }}>
+                <div className="pad20">
+                  <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+                    {translate('Villa Construction Progress')}
+                  </h3>
+                  {config.statisticCards ? (
+                    <VillaProgressList villas={villasProgress} isLoading={villasLoading} />
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                      {translate('Progress tracking hidden')}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </Col>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
             {config.customerPreview && (
-              <CustomerPreviewCard
-                isLoading={clientLoading}
-                activeCustomer={clientResult?.active}
-                newCustomer={clientResult?.new}
-              />
+              clientLoading ? (
+                <CustomerCardSkeleton />
+              ) : (
+                <CustomerPreviewCard
+                  isLoading={clientLoading}
+                  activeCustomer={clientResult?.active}
+                  newCustomer={clientResult?.new}
+                />
+              )
             )}
           </Col>
         </Row>
