@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, InputNumber, Button, Select, DatePicker, Divider, Row, Col, App, Card, Descriptions, Checkbox } from 'antd';
+import { Form, Input, InputNumber, Button, Select, DatePicker, Divider, Row, Col, App, Card, Descriptions, Checkbox, Modal } from 'antd';
 import useMoney from '@/settings/useMoney';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 import numberToWords from '@/utils/numberToWords';
 
 export default function BookingCreate() {
-    const { message } = App.useApp();
+    const { message, modal } = App.useApp();
     const [form] = Form.useForm();
     const translate = useLanguage();
     const { currency_symbol, inputFormatter, inputParser, moneyFormatter } = useMoney();
@@ -574,30 +574,50 @@ export default function BookingCreate() {
                         {(fields, { add, remove }) => (
                             <>
                                 {fields.map(({ key, name, ...restField }) => (
-                                    <div key={key} style={{ marginBottom: 20, padding: 20, border: '1px solid #f0f0f0', borderRadius: 8, position: 'relative' }}>
-                                        <MinusCircleOutlined
-                                            onClick={() => remove(name)}
-                                            style={{ position: 'absolute', right: 20, top: 20, color: 'red', fontSize: '18px' }}
-                                        />
-                                        <Row gutter={16}>
-                                            <Col span={12}>
+                                    <div key={key} style={{ marginBottom: 20, padding: 20, border: '1px solid #f0f0f0', borderRadius: 8, backgroundColor: 'transparent' }}>
+                                        <Row gutter={16} style={{ marginBottom: 16 }} align="middle">
+                                            <Col span={10}>
                                                 <Form.Item
                                                     {...restField}
                                                     name={[name, 'name']}
                                                     label="Milestone Name"
                                                     rules={[{ required: true, message: 'Missing milestone name' }]}
+                                                    style={{ marginBottom: 0 }}
                                                 >
                                                     <Input placeholder="e.g. Plinth" />
                                                 </Form.Item>
                                             </Col>
-                                            <Col span={12}>
+                                            <Col span={10}>
                                                 <Form.Item
                                                     {...restField}
                                                     name={[name, 'dueDate']}
                                                     label="Due Date"
+                                                    style={{ marginBottom: 0 }}
                                                 >
                                                     <DatePicker style={{ width: '100%' }} />
                                                 </Form.Item>
+                                            </Col>
+                                            <Col span={4} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Button
+                                                    danger
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        modal.confirm({
+                                                            title: 'Delete Milestone',
+                                                            content: 'Are you sure you want to delete this milestone?',
+                                                            okText: 'Delete',
+                                                            okType: 'danger',
+                                                            cancelText: 'Cancel',
+                                                            onOk() {
+                                                                remove(name);
+                                                            },
+                                                        });
+                                                    }}
+                                                    style={{ alignSelf: 'center' }}
+                                                >
+                                                    Delete
+                                                </Button>
                                             </Col>
                                         </Row>
                                         <Row gutter={16}>

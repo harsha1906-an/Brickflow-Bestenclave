@@ -22,7 +22,7 @@ export default function LoginForm() {
       >
         <Input
           prefix={<UserOutlined className="site-form-item-icon" />}
-          placeholder={'admin@admin.com'}
+          placeholder={'email@example.com'}
           type="email"
           size="large"
         />
@@ -38,7 +38,7 @@ export default function LoginForm() {
       >
         <Input.Password
           prefix={<LockOutlined className="site-form-item-icon" />}
-          placeholder={'admin123'}
+          placeholder={'password'}
           size="large"
         />
       </Form.Item>
@@ -51,6 +51,12 @@ export default function LoginForm() {
           {translate('Forgot password')}
         </a>
       </Form.Item>
+      <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+          {translate("Don't have an account?")}{' '}
+          <a href="/register">
+            {translate('Register')}
+          </a>
+      </div>
     </div>
   );
 }

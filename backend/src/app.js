@@ -46,6 +46,7 @@ app.use((req, res, next) => {
   if (req.url.startsWith('/api/api/')) {
     req.url = req.url.replace('/api/api/', '/api/');
   }
+  console.log('Incoming Request:', req.method, req.url);
   next();
 });
 

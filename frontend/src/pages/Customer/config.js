@@ -8,7 +8,8 @@ export const fields = {
     // color: 'red',
   },
   address: {
-    type: 'string',
+    type: 'textarea',
+    label: 'Address',
   },
   phone: {
     type: 'phone',

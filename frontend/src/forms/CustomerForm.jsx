@@ -1,10 +1,13 @@
-import { Form, Input } from 'antd';
+import { Form, Input, DatePicker, Checkbox } from 'antd';
 import { validatePhoneNumber } from '@/utils/helpers';
+import { useState } from 'react';
 
 import useLanguage from '@/locale/useLanguage';
 
 export default function CustomerForm({ isUpdateForm = false }) {
   const translate = useLanguage();
+  const [useSameAddress, setUseSameAddress] = useState(false);
+  const form = Form.useFormInstance();
   const validateEmptyString = (_, value) => {
     if (value && value.trim() === '') {
       return Promise.reject(new Error('Field cannot be empty'));
@@ -86,10 +89,7 @@ export default function CustomerForm({ isUpdateForm = false }) {
       >
         <Input />
       </Form.Item>
-      <Form.Item
-        name="email"
-        label={translate('email')}
-        rules={[
+      <Form.Item name="email" label={translate('email')} rules={[
           {
             type: 'email',
           },
@@ -99,10 +99,15 @@ export default function CustomerForm({ isUpdateForm = false }) {
           {
             validator: validateEmptyString,
           },
-        ]}
-      >
+        ]}>
         <Input />
       </Form.Item>
+
+      <div style={{ marginTop: '30px', marginBottom: '20px' }}>
+        <Form.Item name="address" label={translate('Address')}>
+          <Input.TextArea rows={2} />
+        </Form.Item>
+      </div>
 
       <div style={{ marginTop: '20px', marginBottom: '10px', fontWeight: 'bold' }}>Nominee Details</div>
 
@@ -119,12 +124,25 @@ export default function CustomerForm({ isUpdateForm = false }) {
       </Form.Item>
 
       <Form.Item name="nomineeDob" label={translate('Date of Birth')}>
-        {/* Using the standard Ant Design DatePicker, handled by parent form if needed */}
-        <Input type="date" style={{ width: '100%' }} />
+        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
       </Form.Item>
 
       <Form.Item name="nomineeMobile" label={translate('Mobile Number')}>
         <Input />
+      </Form.Item>
+
+      <Form.Item>
+        <Checkbox 
+          onChange={(e) => {
+            setUseSameAddress(e.target.checked);
+            if (e.target.checked && form) {
+              const customerAddress = form.getFieldValue('address');
+              form.setFieldValue('nomineeAddress', customerAddress);
+            }
+          }}
+        >
+          {translate('Use same address as customer')}
+        </Checkbox>
       </Form.Item>
 
       <Form.Item name="nomineeAddress" label={translate('Address')}>

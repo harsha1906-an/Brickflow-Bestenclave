@@ -31,6 +31,15 @@ const update = async (req, res) => {
       result: null,
       message: 'Update request submitted for Owner approval',
     });
+  } else {
+      // Owner requires security code to update
+      if (req.body.securityCode !== '090926') {
+          return res.status(403).json({
+              success: false,
+              result: null,
+              message: 'Invalid Security Code. Access Denied.',
+          });
+      }
   }
   // Find document by id and updates with the required fields
   const previousPayment = await Model.findOne({

@@ -22,8 +22,8 @@ export default function LeadRead() {
     const [savingNote, setSavingNote] = useState(false);
 
     const { role } = useUserRole();
-    const canEdit = role === 'OWNER' || role === 'ENGINEER';
-    const canConvert = role === 'OWNER';
+    const canEdit = role === 'OWNER' || role === 'ENGINEER' || role === 'MANAGER';
+    const canConvert = role === 'OWNER' || role === 'MANAGER';
 
     useEffect(() => {
         fetchLead();

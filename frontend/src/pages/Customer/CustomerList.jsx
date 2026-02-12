@@ -4,8 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, DownloadOutlin
 import { useNavigate } from 'react-router-dom';
 import useLanguage from '@/locale/useLanguage';
 import { request } from '@/request';
-import DynamicForm from '@/forms/DynamicForm';
-import { fields } from './config';
+import CustomerForm from '@/forms/CustomerForm';
 import dayjs from 'dayjs';
 
 const CustomerList = () => {
@@ -229,7 +228,7 @@ const CustomerList = () => {
                 width={800}
             >
                 <Form form={form} layout="vertical">
-                    <DynamicForm fields={fields} />
+                    <CustomerForm />
                 </Form>
             </Modal>
         </div>

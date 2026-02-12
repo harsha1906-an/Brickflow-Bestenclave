@@ -30,7 +30,7 @@ const adminSchema = new Schema({
   role: {
     type: String,
     default: 'owner',
-    enum: ['owner', 'engineer', 'accountant'],
+    enum: ['owner', 'manager', 'engineer', 'accountant'],
   },
   dashboardConfig: {
     type: mongoose.Schema.Types.Mixed,

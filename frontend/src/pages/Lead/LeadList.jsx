@@ -16,8 +16,8 @@ export default function LeadList() {
 
     const navigate = useNavigate();
     const { role } = useUserRole();
-    const canEdit = role === 'OWNER' || role === 'ENGINEER';
-    const canDelete = role === 'OWNER';
+    const canEdit = role === 'OWNER' || role === 'ENGINEER' || role === 'MANAGER';
+    const canDelete = role === 'OWNER' || role === 'MANAGER';
 
     useEffect(() => {
         fetchData();

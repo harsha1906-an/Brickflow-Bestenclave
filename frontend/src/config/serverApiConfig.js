@@ -1,6 +1,6 @@
-export const API_BASE_URL = 'https://brickflow.dev/api/';
-export const BASE_URL = 'https://brickflow.dev/';
-export const WEBSITE_URL = 'https://brickflow.dev/';
+export const API_BASE_URL = 'http://localhost:8888/api/';
+export const BASE_URL = 'http://localhost:8888/';
+export const WEBSITE_URL = 'http://localhost:8888/';
 export const DOWNLOAD_BASE_URL =
   import.meta.env.PROD || import.meta.env.VITE_DEV_REMOTE
     ? import.meta.env.VITE_BACKEND_SERVER + 'download/'
