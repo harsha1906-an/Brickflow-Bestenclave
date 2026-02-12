@@ -63,7 +63,7 @@ app.use('/api', adminAuth.isValidAuthToken, reportingApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, bookingApiRouter);
 app.use('/api/chat', adminAuth.isValidAuthToken, chatApiRouter);
 app.use('/api/analytics', adminAuth.isValidAuthToken, analyticsApiRouter);
-app.use('/download', coreDownloadRouter);
+app.use('/download', adminAuth.isValidAuthToken, coreDownloadRouter);
 app.use('/public', corePublicRouter);
 
 // If that above routes didnt work, we 404 them and forward to error handler
