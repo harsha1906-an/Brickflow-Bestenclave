@@ -9,6 +9,12 @@ const isValidAuthToken = async (req, res, next, { userModel, jwtSecret = 'JWT_SE
 
     // const token = req.cookies[`token_${cloud._id}`];
     const authHeader = req.headers['authorization'];
+
+    // DEBUG: Log headers to debug authentication failure
+    console.log('DEBUG AUTH: URL:', req.originalUrl);
+    console.log('DEBUG AUTH: Headers:', JSON.stringify(req.headers));
+    console.log('DEBUG AUTH: Auth Header:', authHeader);
+
     const token = authHeader && authHeader.split(' ')[1]; // Extract the token
 
     if (!token)
