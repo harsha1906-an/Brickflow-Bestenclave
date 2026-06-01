@@ -37,15 +37,29 @@ const create = async (req, res) => {
       // Update Booking Payment Plan if stage provided
       if (req.body.buildingStage && currentBooking.paymentPlan) {
         // Find the payment plan item that matches the stage name/description
-        const planIndex = currentBooking.paymentPlan.findIndex(p =>
-          p.name && p.name.toLowerCase().includes(req.body.buildingStage.toLowerCase())
-        );
+        let planIndex = -1;
+        if (req.body.milestoneId) {
+          planIndex = currentBooking.paymentPlan.findIndex(p => p._id && p._id.toString() === req.body.milestoneId);
+        }
+        
+        // Fallback for backwards compatibility
+        if (planIndex === -1 && req.body.buildingStage) {
+          planIndex = currentBooking.paymentPlan.findIndex(p =>
+            p.name && p.name.toLowerCase().includes(req.body.buildingStage.toLowerCase())
+          );
+        }
 
         if (planIndex !== -1) {
           const plan = currentBooking.paymentPlan[planIndex];
-          // Increment paid amount
+          // Increment total paid amount
           const newPaidAmount = (plan.paidAmount || 0) + req.body.amount;
           plan.paidAmount = newPaidAmount;
+
+          if (req.body.ledger === 'official') {
+            plan.paidAccountableAmount = (plan.paidAccountableAmount || 0) + req.body.amount;
+          } else {
+            plan.paidNonAccountableAmount = (plan.paidNonAccountableAmount || 0) + req.body.amount;
+          }
 
           // Update status
           if (newPaidAmount >= plan.amount) {

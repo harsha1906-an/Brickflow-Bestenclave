@@ -27,6 +27,14 @@ const paginatedList = async (req, res) => {
         if (filter && equal) {
             query[filter] = equal;
         }
+        // Support filtering by booking ID
+        if (req.query.booking) {
+            query.booking = req.query.booking;
+        }
+        // Support filtering by client ID
+        if (req.query.client) {
+            query.client = req.query.client;
+        }
 
         //  Query the database for a list of all results with deep population
         const resultsPromise = Model.find(query)

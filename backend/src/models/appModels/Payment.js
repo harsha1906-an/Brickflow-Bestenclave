@@ -73,6 +73,9 @@ const paymentSchema = new mongoose.Schema({
   buildingStage: {
     type: String,
   },
+  milestoneId: {
+    type: mongoose.Schema.ObjectId,
+  },
   ref: {
     type: String,
   },
