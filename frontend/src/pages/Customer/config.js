@@ -74,4 +74,12 @@ export const fields = {
     type: 'textarea',
     label: 'Address (Nominee)',
   },
+  state: {
+    type: 'string',
+    label: 'State',
+  },
+  gstin: {
+    type: 'string',
+    label: 'GSTIN',
+  },
 };
