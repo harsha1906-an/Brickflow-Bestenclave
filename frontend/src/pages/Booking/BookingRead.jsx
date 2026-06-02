@@ -250,7 +250,6 @@ export default function BookingRead() {
                         <Divider />
                         <Descriptions column={2} title="Payment Details">
                             <Descriptions.Item label="Payment Mode">{booking.paymentMode?.toUpperCase()}</Descriptions.Item>
-                            <Descriptions.Item label="Down Payment (D.P)">{moneyFormatter({ amount: booking.downPayment || 0 })}</Descriptions.Item>
                             <Descriptions.Item label="EMI Amount">{moneyFormatter({ amount: booking.emiAmount || 0 })}</Descriptions.Item>
                             <Descriptions.Item label="No. of EMIs">{booking.noOfEmi}</Descriptions.Item>
                         </Descriptions>

@@ -22,7 +22,6 @@ export default function BookingCreate() {
     const officialAmount = Form.useWatch('officialAmount', form);
     const internalAmount = Form.useWatch('internalAmount', form);
     const totalAmount = Form.useWatch('totalAmount', form);
-    const downPayment = Form.useWatch('downPayment', form);
     const emiAmount = Form.useWatch('emiAmount', form);
 
     const paymentPlan = Form.useWatch('paymentPlan', form);
@@ -401,25 +400,9 @@ export default function BookingCreate() {
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={6}>
+                        <Col span={12}>
                             <Form.Item name="transactionId" label={translate('Transaction ID / Cheque No')}>
                                 <Input />
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item
-                                label={translate('Down Payment (D.P)')}
-                                name="downPayment"
-                                extra={downPayment > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#aaa', marginTop: '5px' }}>{numberToWords(downPayment)}</div> : null}
-                            >
-                                <InputNumber
-                                    id="downPayment"
-                                    name="downPayment"
-                                    style={{ width: '100%' }}
-                                    formatter={inputFormatter}
-                                    parser={inputParser}
-                                    prefix={currency_symbol}
-                                />
                             </Form.Item>
                         </Col>
                     </Row>
@@ -551,19 +534,19 @@ export default function BookingCreate() {
                     <Row gutter={24} style={{ marginBottom: 20 }}>
                         <Col span={8}>
                             <Descriptions title="Validation Summary" bordered size="small" column={1}>
-                                <Descriptions.Item label="Total White Amount">
+                                <Descriptions.Item label="Remaining White Amount">
                                     <span style={{ color: getTotalMilestoneWhite() !== officialAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneWhite() })} / {moneyFormatter({ amount: officialAmount })}
+                                        {moneyFormatter({ amount: (officialAmount || 0) - getTotalMilestoneWhite() })} / {moneyFormatter({ amount: officialAmount })}
                                     </span>
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Total Black Amount">
+                                <Descriptions.Item label="Remaining Black Amount">
                                     <span style={{ color: getTotalMilestoneBlack() !== internalAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneBlack() })} / {moneyFormatter({ amount: internalAmount })}
+                                        {moneyFormatter({ amount: (internalAmount || 0) - getTotalMilestoneBlack() })} / {moneyFormatter({ amount: internalAmount })}
                                     </span>
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Total Amount">
+                                <Descriptions.Item label="Remaining Total Amount">
                                     <span style={{ color: (getTotalMilestoneWhite() + getTotalMilestoneBlack()) !== totalAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneWhite() + getTotalMilestoneBlack() })} / {moneyFormatter({ amount: totalAmount })}
+                                        {moneyFormatter({ amount: (totalAmount || 0) - (getTotalMilestoneWhite() + getTotalMilestoneBlack()) })} / {moneyFormatter({ amount: totalAmount })}
                                     </span>
                                 </Descriptions.Item>
                             </Descriptions>

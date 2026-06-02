@@ -19,7 +19,6 @@ export default function BookingUpdate() {
     const officialAmount = Form.useWatch('officialAmount', form);
     const internalAmount = Form.useWatch('internalAmount', form);
     const totalAmount = Form.useWatch('totalAmount', form);
-    const downPayment = Form.useWatch('downPayment', form);
     const emiAmount = Form.useWatch('emiAmount', form);
 
     useEffect(() => {
@@ -84,6 +83,13 @@ export default function BookingUpdate() {
                     }
 
                     // Format dates for Ant Design DatePicker
+                    // Check if payments exist and restrict editing
+                    if (data.paymentPlan?.some(p => (p.paidAmount || 0) > 0)) {
+                        message.error('Booking cannot be edited after payments have been recorded.');
+                        navigate(`/booking/read/${id}`);
+                        return;
+                    }
+
                     const formattedData = {
                         ...data,
                         ...clientDetails,
@@ -491,22 +497,6 @@ export default function BookingUpdate() {
                         </Col>
                         <Col span={6}>
                             <Form.Item
-                                label={translate('Down Payment (D.P)')}
-                                name="downPayment"
-                                extra={downPayment > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#aaa', marginTop: '5px' }}>{numberToWords(downPayment)}</div> : null}
-                            >
-                                <InputNumber
-                                    id="downPayment"
-                                    name="downPayment"
-                                    style={{ width: '100%' }}
-                                    formatter={inputFormatter}
-                                    parser={inputParser}
-                                    prefix={currency_symbol}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item
                                 label={translate('EMI Amount')}
                                 name="emiAmount"
                                 extra={emiAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#aaa', marginTop: '5px' }}>{numberToWords(emiAmount)}</div> : null}
@@ -588,19 +578,19 @@ export default function BookingUpdate() {
                     <Row gutter={24} style={{ marginBottom: 20 }}>
                         <Col span={8}>
                             <Descriptions title="Validation Summary" bordered size="small" column={1}>
-                                <Descriptions.Item label="Total White Amount">
+                                <Descriptions.Item label="Remaining White Amount">
                                     <span style={{ color: getTotalMilestoneWhite() !== officialAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneWhite() })} / {moneyFormatter({ amount: officialAmount })}
+                                        {moneyFormatter({ amount: (officialAmount || 0) - getTotalMilestoneWhite() })} / {moneyFormatter({ amount: officialAmount })}
                                     </span>
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Total Black Amount">
+                                <Descriptions.Item label="Remaining Black Amount">
                                     <span style={{ color: getTotalMilestoneBlack() !== internalAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneBlack() })} / {moneyFormatter({ amount: internalAmount })}
+                                        {moneyFormatter({ amount: (internalAmount || 0) - getTotalMilestoneBlack() })} / {moneyFormatter({ amount: internalAmount })}
                                     </span>
                                 </Descriptions.Item>
-                                <Descriptions.Item label="Total Amount">
+                                <Descriptions.Item label="Remaining Total Amount">
                                     <span style={{ color: (getTotalMilestoneWhite() + getTotalMilestoneBlack()) !== totalAmount ? 'red' : 'green' }}>
-                                        {moneyFormatter({ amount: getTotalMilestoneWhite() + getTotalMilestoneBlack() })} / {moneyFormatter({ amount: totalAmount })}
+                                        {moneyFormatter({ amount: (totalAmount || 0) - (getTotalMilestoneWhite() + getTotalMilestoneBlack()) })} / {moneyFormatter({ amount: totalAmount })}
                                     </span>
                                 </Descriptions.Item>
                             </Descriptions>
@@ -640,10 +630,8 @@ export default function BookingUpdate() {
                                                     size="small"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        console.log('Delete clicked for milestone index:', name);
                                                         const handleDelete = () => {
                                                             remove(name);
-                                                            console.log('Milestone deleted:', name);
                                                         };
                                                         
                                                         modal.confirm({
