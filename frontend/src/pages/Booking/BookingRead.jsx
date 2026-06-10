@@ -51,6 +51,41 @@ export default function BookingRead() {
         fetchBooking();
     }, [id]);
 
+    // Helper: get payments matching a specific milestone by ID (not name)
+    const getPaymentsForMilestone = (milestone) => {
+        return payments.filter(p => {
+            if (p.milestoneId && milestone._id) {
+                return String(p.milestoneId) === String(milestone._id);
+            }
+            // Fallback for old payments without milestoneId
+            return p.buildingStage === milestone.name;
+        });
+    };
+
+    useEffect(() => {
+        if (paymentModal.open && paymentModal.milestone) {
+            const ms = paymentModal.milestone;
+            const msPayments = getPaymentsForMilestone(ms);
+            const paidWhite = msPayments.filter(p => p.ledger === 'official').reduce((sum, p) => sum + (p.amount || 0), 0);
+            const paidBlack = msPayments.filter(p => p.ledger === 'internal').reduce((sum, p) => sum + (p.amount || 0), 0);
+            const pendingWhite = Math.max(0, (ms.accountableAmount || 0) - paidWhite);
+            const pendingBlack = Math.max(0, (ms.nonAccountableAmount || 0) - paidBlack);
+
+            form.setFieldsValue({
+                date: dayjs(),
+                whiteAmount: pendingWhite,
+                blackAmount: pendingBlack,
+                whitePaymentMode: 'Bank Transfer',
+                blackPaymentMode: 'Cash',
+                whiteRef: '',
+                blackRef: '',
+                description: ''
+            });
+        } else {
+            form.resetFields();
+        }
+    }, [paymentModal.open, paymentModal.milestone]);
+
     if (!booking) return <></>;
 
     const handlePay = (milestone) => {
@@ -125,41 +160,6 @@ export default function BookingRead() {
             setLoading(false);
         }
     };
-
-    // Helper: get payments matching a specific milestone by ID (not name)
-    const getPaymentsForMilestone = (milestone) => {
-        return payments.filter(p => {
-            if (p.milestoneId && milestone._id) {
-                return String(p.milestoneId) === String(milestone._id);
-            }
-            // Fallback for old payments without milestoneId
-            return p.buildingStage === milestone.name;
-        });
-    };
-
-    useEffect(() => {
-        if (paymentModal.open && paymentModal.milestone) {
-            const ms = paymentModal.milestone;
-            const msPayments = getPaymentsForMilestone(ms);
-            const paidWhite = msPayments.filter(p => p.ledger === 'official').reduce((sum, p) => sum + (p.amount || 0), 0);
-            const paidBlack = msPayments.filter(p => p.ledger === 'internal').reduce((sum, p) => sum + (p.amount || 0), 0);
-            const pendingWhite = Math.max(0, (ms.accountableAmount || 0) - paidWhite);
-            const pendingBlack = Math.max(0, (ms.nonAccountableAmount || 0) - paidBlack);
-
-            form.setFieldsValue({
-                date: dayjs(),
-                whiteAmount: pendingWhite,
-                blackAmount: pendingBlack,
-                whitePaymentMode: 'Bank Transfer',
-                blackPaymentMode: 'Cash',
-                whiteRef: '',
-                blackRef: '',
-                description: ''
-            });
-        } else {
-            form.resetFields();
-        }
-    }, [paymentModal.open, paymentModal.milestone]);
 
 
     const paymentPlanColumns = [
