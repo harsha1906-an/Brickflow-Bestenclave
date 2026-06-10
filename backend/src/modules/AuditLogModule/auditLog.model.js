@@ -12,16 +12,15 @@ const auditLogSchema = new mongoose.Schema({
     ref: 'Admin',
     required: true,
     index: true,
+    autopopulate: true,
   },
   module: {
     type: String,
     required: true,
-    enum: ['villa', 'payment', 'expense', 'labour', 'attendance', 'progress'],
   },
   action: {
     type: String,
     required: true,
-    enum: ['create', 'update', 'delete', 'attempt'],
   },
   entityType: {
     type: String,
@@ -44,5 +43,6 @@ const auditLogSchema = new mongoose.Schema({
 });
 
 auditLogSchema.set('versionKey', false);
+auditLogSchema.plugin(require('mongoose-autopopulate'));
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

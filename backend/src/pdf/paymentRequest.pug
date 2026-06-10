@@ -39,7 +39,7 @@ html
         
       }
       .logo {
-        width: 150px;
+        width: 225px;
       }
       .company-info{
         text-align: right;
@@ -128,7 +128,10 @@ html
   body
     header.clearfix
       .top-area
-        img.logo.left(src=settings.public_server_file+settings.company_logo)
+        if logo
+          img.logo.left(src=logo)
+        else if settings.company_logo
+          img.logo.left(src=settings.public_server_file+settings.company_logo)
         .right.company-info
             p.strong #{settings.company_name}
             p #{settings.company_address}

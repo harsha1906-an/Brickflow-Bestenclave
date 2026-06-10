@@ -5,7 +5,7 @@ const { generatePdf } = require('@/controllers/pdfController');
 
 const report = async (req, res) => {
     try {
-        const { date, startDate, endDate } = req.query;
+        const { date, startDate, endDate, reportCategory } = req.query;
 
         // Helper function to generate data for a single day
         const generateSingleDayReport = async (reportDate) => {
@@ -87,7 +87,7 @@ const report = async (req, res) => {
             }).sort({ date: 1, created: 1 });
 
             let balanceAcc = openingBalance;
-            const items = dayTransactions.map(item => {
+            let items = dayTransactions.map(item => {
                 if (item.type === 'inward') balanceAcc += item.amount;
                 if (item.type === 'outward') balanceAcc -= item.amount;
                 return {
@@ -95,6 +95,12 @@ const report = async (req, res) => {
                     runningBalance: balanceAcc
                 };
             });
+
+            if (reportCategory === 'inward') {
+                items = items.filter(i => i.type === 'inward');
+            } else if (reportCategory === 'outward') {
+                items = items.filter(i => i.type === 'outward');
+            }
 
             return {
                 date: targetDate.toDate(),

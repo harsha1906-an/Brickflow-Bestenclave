@@ -6,6 +6,11 @@ const update = async (Model, req, res) => {
   blacklistedFields.forEach(field => delete req.body[field]);
 
   req.body.removed = false;
+  const oldDocument = await Model.findOne({
+    _id: req.params.id,
+    removed: false,
+  }).lean().exec();
+
   const result = await Model.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -24,6 +29,19 @@ const update = async (Model, req, res) => {
       message: 'No document found ',
     });
   } else {
+    const { logAuditAction } = require('../../../modules/AuditLogModule/auditLog.middleware');
+    logAuditAction({
+      req,
+      module: Model.modelName,
+      action: 'update',
+      entityType: Model.modelName,
+      entityId: result._id,
+      metadata: {
+        old: oldDocument,
+        new: result.toObject(),
+      },
+    });
+
     return res.status(200).json({
       success: true,
       result,

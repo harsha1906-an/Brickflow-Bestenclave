@@ -33,10 +33,6 @@ const LabourList = () => {
   const { role } = useUserRole();
   const { state } = useAppContext();
   const companyId = state.currentCompany;
-
-  const dailyWageWatch = Form.useWatch('dailyWage', form);
-  const monthlySalaryWatch = Form.useWatch('monthlySalary', form);
-
   const fetchLabour = async () => {
     if (!companyId) return;
     setLoading(true);
@@ -267,29 +263,38 @@ const LabourList = () => {
             }}
           </Form.Item>
 
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.employmentType !== curr.employmentType}>
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => 
+              prev.employmentType !== curr.employmentType ||
+              prev.dailyWage !== curr.dailyWage ||
+              prev.monthlySalary !== curr.monthlySalary
+            }
+          >
             {({ getFieldValue }) => {
               const type = getFieldValue('employmentType');
               if (type === 'daily') {
+                const dailyWage = getFieldValue('dailyWage') || 0;
                 return (
                   <Form.Item
                     name="dailyWage"
                     label="Daily Wage Rate"
                     rules={[{ required: true }]}
-                    extra={dailyWageWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(dailyWageWatch)}</div> : null}
+                    extra={dailyWage > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(dailyWage)}</div> : null}
                   >
                     <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
                   </Form.Item>
                 );
               }
               if (type === 'monthly') {
+                const monthlySalary = getFieldValue('monthlySalary') || 0;
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <Form.Item
                       name="monthlySalary"
                       label="Monthly Salary"
                       rules={[{ required: true }]}
-                      extra={monthlySalaryWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(monthlySalaryWatch)}</div> : null}
+                      extra={monthlySalary > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(monthlySalary)}</div> : null}
                     >
                       <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
                     </Form.Item>
@@ -324,7 +329,7 @@ const LabourList = () => {
                                     danger
                                     disabled={role === 'ACCOUNTANT'}
                                     icon={<DeleteOutlined />}
-                                    onClick={() => remove(field.name)}
+                                    onClick={() => remove(name)}
                                     style={{ marginBottom: '4px' }}
                                   />
                                 )}

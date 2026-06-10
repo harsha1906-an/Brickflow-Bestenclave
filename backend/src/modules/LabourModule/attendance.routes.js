@@ -73,7 +73,7 @@ router.post('/', checkRbac('attendance', 'create'), async (req, res) => {
 });
 
 // Update attendance
-router.put('/:attendanceId', checkRbac('attendance', 'update'), async (req, res) => {
+const updateAttendanceHandler = async (req, res) => {
   try {
     const { companyId, attendanceId } = req.params;
     const update = req.body;
@@ -112,18 +112,34 @@ router.put('/:attendanceId', checkRbac('attendance', 'update'), async (req, res)
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
+};
+
+router.put('/:attendanceId', checkRbac('attendance', 'update'), updateAttendanceHandler);
+router.patch('/:attendanceId', checkRbac('attendance', 'update'), updateAttendanceHandler);
 
 // Delete attendance
 router.delete('/:attendanceId', checkRbac('attendance', 'delete'), async (req, res) => {
   try {
     const { companyId, attendanceId } = req.params;
-    const result = await Attendance.deleteOne({ _id: attendanceId, companyId });
-    if (result.deletedCount === 0) return res.status(404).json({ error: 'Attendance not found' });
+    const attendance = await Attendance.findOne({ _id: attendanceId, companyId });
+    if (!attendance) return res.status(404).json({ error: 'Attendance not found' });
+
+    await Attendance.deleteOne({ _id: attendanceId, companyId });
     res.json({ success: true });
+    
+    // Audit log (fail-safe, after success)
+    logAuditAction({
+      req,
+      module: 'attendance',
+      action: 'delete',
+      entityType: 'Attendance',
+      entityId: attendanceId,
+      metadata: attendance.toObject ? attendance.toObject() : attendance
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 module.exports = router;
+// Trigger nodemon restart after port is free

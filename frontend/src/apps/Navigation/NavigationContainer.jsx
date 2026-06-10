@@ -30,6 +30,7 @@ import {
   TeamOutlined,
   FileProtectOutlined,
   DollarOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -120,6 +121,11 @@ function Sidebar({ collapsible, isMobile = false }) {
       label: <Link to={'/daily-summary'}>Daily Expenses</Link>,
     },
     {
+      key: 'reports',
+      icon: <FileTextOutlined />,
+      label: <Link to={'/reports'}>Reports</Link>,
+    },
+    {
       key: 'villa-reports',
       icon: <ProjectOutlined />,
       label: <Link to={'/villa-reports'}>Villa Reports</Link>,
@@ -133,11 +139,6 @@ function Sidebar({ collapsible, isMobile = false }) {
       key: 'payment',
       icon: <CreditCardOutlined />,
       label: <Link to={'/payment'}>{translate('payments')}</Link>,
-    },
-    {
-      key: 'purchaseorder',
-      icon: <FileDoneOutlined />,
-      label: <Link to={'/purchaseorder'}>{translate('purchase_order')}</Link>,
     },
 
     {

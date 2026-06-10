@@ -12,9 +12,8 @@ const { appendAuditLog } = require('./auditLog.service');
  * @param {Object} [params.metadata] - Minimal metadata (optional)
  */
 function logAuditAction({ req, module, action, entityType, entityId, metadata }) {
-  // Defensive: Only log if companyId and userId are present
-  const companyId = req.company?._id || req.companyId || req.body.companyId || req.params.companyId;
-  const userId = req.user?._id || req.userId || req.adminId;
+  const companyId = req.company?._id || req.companyId || req.body?.companyId || req.params?.companyId || req.admin?.companyId;
+  const userId = req.user?._id || req.userId || req.adminId || req.admin?._id;
   if (!companyId || !userId) return;
   appendAuditLog({
     companyId,

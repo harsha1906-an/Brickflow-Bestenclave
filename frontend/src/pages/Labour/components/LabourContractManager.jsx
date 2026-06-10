@@ -27,13 +27,6 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
     const [completionForm] = Form.useForm();
     const [lastCreatedExpense, setLastCreatedExpense] = useState(null);
 
-    const contractTotalAmount = Form.useWatch('totalAmount', form);
-
-    const releaseAmount = Form.useWatch('amount', completionForm);
-    const releaseAdvance = Form.useWatch('advanceDeduction', completionForm);
-    const releasePenalty = Form.useWatch('penalty', completionForm);
-    const releaseNetAmount = Form.useWatch('netAmount', completionForm);
-
     const fetchContracts = async () => {
         if (!labour?._id) return;
         setLoading(true);
@@ -392,17 +385,27 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                             <Row gutter={16}>
                                 <Col span={8}>
                                     <Form.Item
-                                        name="totalAmount"
-                                        label="Total Contract Value"
-                                        extra={contractTotalAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(contractTotalAmount)}</div> : null}
+                                        noStyle
+                                        shouldUpdate={(prev, curr) => prev.totalAmount !== curr.totalAmount}
                                     >
-                                        <InputNumber
-                                            disabled
-                                            style={{ width: '100%', fontWeight: 'bold' }}
-                                            prefix={currency_symbol}
-                                            formatter={inputFormatter}
-                                            parser={inputParser}
-                                        />
+                                        {({ getFieldValue }) => {
+                                            const totalAmount = getFieldValue('totalAmount') || 0;
+                                            return (
+                                                <Form.Item
+                                                    name="totalAmount"
+                                                    label="Total Contract Value"
+                                                    extra={totalAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(totalAmount)}</div> : null}
+                                                >
+                                                    <InputNumber
+                                                        disabled
+                                                        style={{ width: '100%', fontWeight: 'bold' }}
+                                                        prefix={currency_symbol}
+                                                        formatter={inputFormatter}
+                                                        parser={inputParser}
+                                                    />
+                                                </Form.Item>
+                                            );
+                                        }}
                                     </Form.Item>
                                 </Col>
                             </Row>
@@ -599,62 +602,102 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                         }}
                     >
                         <Form.Item
-                            name="amount"
-                            label="Milestone Base Amount"
-                            extra={releaseAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAmount)}</div> : null}
+                            noStyle
+                            shouldUpdate={(prev, curr) => prev.amount !== curr.amount}
                         >
-                            <InputNumber
-                                disabled
-                                style={{ width: '100%' }}
-                                prefix={currency_symbol}
-                                formatter={inputFormatter}
-                                parser={inputParser}
-                            />
+                            {({ getFieldValue }) => {
+                                const releaseAmount = getFieldValue('amount') || 0;
+                                return (
+                                    <Form.Item
+                                        name="amount"
+                                        label="Milestone Base Amount"
+                                        extra={releaseAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAmount)}</div> : null}
+                                    >
+                                        <InputNumber
+                                            disabled
+                                            style={{ width: '100%' }}
+                                            prefix={currency_symbol}
+                                            formatter={inputFormatter}
+                                            parser={inputParser}
+                                        />
+                                    </Form.Item>
+                                );
+                            }}
                         </Form.Item>
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
-                                    name="advanceDeduction"
-                                    label="Advance Deduction"
-                                    extra={releaseAdvance > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAdvance)}</div> : null}
+                                    noStyle
+                                    shouldUpdate={(prev, curr) => prev.advanceDeduction !== curr.advanceDeduction}
                                 >
-                                    <InputNumber
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                        prefix={currency_symbol}
-                                        formatter={inputFormatter}
-                                        parser={inputParser}
-                                    />
+                                    {({ getFieldValue }) => {
+                                        const releaseAdvance = getFieldValue('advanceDeduction') || 0;
+                                        return (
+                                            <Form.Item
+                                                name="advanceDeduction"
+                                                label="Advance Deduction"
+                                                extra={releaseAdvance > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAdvance)}</div> : null}
+                                            >
+                                                <InputNumber
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    prefix={currency_symbol}
+                                                    formatter={inputFormatter}
+                                                    parser={inputParser}
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }}
                                 </Form.Item>
                             </Col>
                             <Col span={12}>
                                 <Form.Item
-                                    name="penalty"
-                                    label="Penalty"
-                                    extra={releasePenalty > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releasePenalty)}</div> : null}
+                                    noStyle
+                                    shouldUpdate={(prev, curr) => prev.penalty !== curr.penalty}
                                 >
-                                    <InputNumber
-                                        style={{ width: '100%' }}
-                                        min={0}
-                                        prefix={currency_symbol}
-                                        formatter={inputFormatter}
-                                        parser={inputParser}
-                                    />
+                                    {({ getFieldValue }) => {
+                                        const releasePenalty = getFieldValue('penalty') || 0;
+                                        return (
+                                            <Form.Item
+                                                name="penalty"
+                                                label="Penalty"
+                                                extra={releasePenalty > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releasePenalty)}</div> : null}
+                                            >
+                                                <InputNumber
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    prefix={currency_symbol}
+                                                    formatter={inputFormatter}
+                                                    parser={inputParser}
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }}
                                 </Form.Item>
                             </Col>
                         </Row>
                         <Form.Item
-                            name="netAmount"
-                            label="Net Released Amount"
-                            extra={releaseNetAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseNetAmount)}</div> : null}
+                            noStyle
+                            shouldUpdate={(prev, curr) => prev.netAmount !== curr.netAmount}
                         >
-                            <InputNumber
-                                disabled
-                                style={{ width: '100%', fontWeight: 'bold' }}
-                                prefix={currency_symbol}
-                                formatter={inputFormatter}
-                                parser={inputParser}
-                            />
+                            {({ getFieldValue }) => {
+                                const releaseNetAmount = getFieldValue('netAmount') || 0;
+                                return (
+                                    <Form.Item
+                                        name="netAmount"
+                                        label="Net Released Amount"
+                                        extra={releaseNetAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseNetAmount)}</div> : null}
+                                    >
+                                        <InputNumber
+                                            disabled
+                                            style={{ width: '100%', fontWeight: 'bold' }}
+                                            prefix={currency_symbol}
+                                            formatter={inputFormatter}
+                                            parser={inputParser}
+                                        />
+                                    </Form.Item>
+                                );
+                            }}
                         </Form.Item>
                         <Divider>Payment Details</Divider>
                         <Row gutter={16}>

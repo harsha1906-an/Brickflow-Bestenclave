@@ -96,12 +96,14 @@ function FixHeaderPanel({ config }) {
 
   return (
     <Row gutter={8}>
-      <Col className="gutter-row" span={21}>
+      <Col className="gutter-row" span={config.readOnly ? 24 : 21}>
         <SearchItem config={config} />
       </Col>
-      <Col className="gutter-row" span={3}>
-        <Button onClick={addNewItem} block={true} icon={<PlusOutlined />}></Button>
-      </Col>
+      {!config.readOnly && (
+        <Col className="gutter-row" span={3}>
+          <Button onClick={addNewItem} block={true} icon={<PlusOutlined />}></Button>
+        </Col>
+      )}
     </Row>
   );
 }
@@ -118,14 +120,20 @@ function CrudModule({ config, createForm, updateForm, withUpload = false }) {
       config={config}
       fixHeaderPanel={<FixHeaderPanel config={config} />}
       sidePanelBottomContent={
-        <CreateForm config={config} formElements={createForm} withUpload={withUpload} />
+        config.readOnly ? null : (
+          <CreateForm config={config} formElements={createForm} withUpload={withUpload} />
+        )
       }
       sidePanelTopContent={
-        <SidePanelTopContent config={config} formElements={updateForm} withUpload={withUpload} />
+        config.readOnly ? (
+          <ReadItem config={config} />
+        ) : (
+          <SidePanelTopContent config={config} formElements={updateForm} withUpload={withUpload} />
+        )
       }
     >
       <DataTable config={config} />
-      <DeleteModal config={config} />
+      {!config.readOnly && <DeleteModal config={config} />}
     </CrudLayout>
   );
 }

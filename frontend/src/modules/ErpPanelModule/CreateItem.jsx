@@ -14,6 +14,8 @@ import { selectCreatedItem } from '@/redux/erp/selectors';
 import calculate from '@/utils/calculate';
 import { nanoid as uniqueId } from 'nanoid';
 
+import dayjs from 'dayjs';
+
 import Loading from '@/components/Loading';
 import {
   ArrowLeftOutlined,
@@ -59,6 +61,14 @@ export default function CreateItem({ config, CreateForm }) {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
+        // Convert date string fields back to dayjs objects so DatePicker doesn't crash
+        const dateFields = ['date', 'expiredDate', 'finalDate'];
+        dateFields.forEach((field) => {
+          if (parsed[field] && typeof parsed[field] === 'string') {
+            const d = dayjs(parsed[field]);
+            parsed[field] = d.isValid() ? d : undefined;
+          }
+        });
         form.setFieldsValue(parsed);
         // Recalculate totals
         handelValuesChange(null, parsed);

@@ -6,7 +6,7 @@ const methods = createCRUDController('Material');
 methods.adjustStock = async (req, res) => {
     try {
         const { id } = req.params;
-        const { type, quantity, reference, vehicleNumber, notes, date, project, usageCategory, villa, supplier, issuedBy } = req.body; // type: 'inward' or 'outward', villa: villaId
+        const { type, quantity, reference, vehicleNumber, notes, date, project, usageCategory, villa, supplier, issuedBy, isDirect } = req.body; // type: 'inward' or 'outward', villa: villaId
 
         if (!['inward', 'outward'].includes(type)) {
             return res.status(400).json({ success: false, message: 'Invalid transaction type' });
@@ -71,28 +71,41 @@ methods.adjustStock = async (req, res) => {
 
         // Update Material Stock
         if (type === 'inward') {
-            if (villaStock) {
-                // TRANSFER: Global -> Villa
-                console.log('>>> TRANSFER MODE: Global -> Villa');
-                // Check if Global has enough stock
-                if (material.currentStock < quantity) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `Insufficient global stock for transfer. Current: ${material.currentStock} ${material.unit}`
-                    });
+            if (villa) {
+                if (isDirect) {
+                    // DIRECT PURCHASE TO VILLA: External -> Villa
+                    console.log('>>> DIRECT PURCHASE MODE: External -> Villa');
+                    const oldVillaStock = villaStock.currentStock;
+                    villaStock.currentStock = calculate.add(villaStock.currentStock, quantity); // Increase Villa
+                    villaStock.lastUpdated = Date.now();
+
+                    console.log(`Villa stock: ${oldVillaStock} -> ${villaStock.currentStock} (increased by ${quantity}, Direct)`);
+
+                    await villaStock.save();
+                    console.log('✓ VillaStock saved');
+                } else {
+                    // TRANSFER: Global -> Villa
+                    console.log('>>> TRANSFER MODE: Global -> Villa');
+                    // Check if Global has enough stock
+                    if (material.currentStock < quantity) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Insufficient global stock for transfer. Current: ${material.currentStock} ${material.unit}`
+                        });
+                    }
+                    const oldGlobalStock = material.currentStock;
+                    const oldVillaStock = villaStock.currentStock;
+
+                    material.currentStock = calculate.sub(material.currentStock, quantity); // Reduce Global
+                    villaStock.currentStock = calculate.add(villaStock.currentStock, quantity); // Increase Villa
+                    villaStock.lastUpdated = Date.now();
+
+                    console.log(`Global stock: ${oldGlobalStock} -> ${material.currentStock} (reduced by ${quantity})`);
+                    console.log(`Villa stock: ${oldVillaStock} -> ${villaStock.currentStock} (increased by ${quantity})`);
+
+                    await villaStock.save();
+                    console.log('✓ VillaStock saved');
                 }
-                const oldGlobalStock = material.currentStock;
-                const oldVillaStock = villaStock.currentStock;
-
-                material.currentStock = calculate.sub(material.currentStock, quantity); // Reduce Global
-                villaStock.currentStock = calculate.add(villaStock.currentStock, quantity); // Increase Villa
-                villaStock.lastUpdated = Date.now();
-
-                console.log(`Global stock: ${oldGlobalStock} -> ${material.currentStock} (reduced by ${quantity})`);
-                console.log(`Villa stock: ${oldVillaStock} -> ${villaStock.currentStock} (increased by ${quantity})`);
-
-                await villaStock.save();
-                console.log('✓ VillaStock saved');
             } else {
                 // PURCHASE: External -> Global
                 console.log('>>> PURCHASE MODE: External -> Global');
@@ -164,8 +177,8 @@ methods.adjustStock = async (req, res) => {
 
         // Scenario 2: CONSUMPTION FROM GLOBAL STOCK (Transfer to Villa OR Outward from Global)
         // We need to calculate cost by consuming 'inward' global batches FIFO.
-        // Condition: It's an issue (outward without villa) OR a transfer (inward with villa)
-        const isConsumingGlobal = (type === 'outward' && !villa) || (type === 'inward' && villa);
+        // Condition: It's an issue (outward without villa) OR a transfer (inward with villa AND !isDirect)
+        const isConsumingGlobal = (type === 'outward' && !villa) || (type === 'inward' && villa && !isDirect);
 
         if (isConsumingGlobal) {
             console.log('>>> FIFO: Calculating Cost for Global Consumption...');
@@ -244,6 +257,7 @@ methods.adjustStock = async (req, res) => {
             villa,
             supplier,
             issuedBy,
+            isDirect: !!isDirect,
             usageCategory: usageCategory || 'daily_work',
             performedBy: req.admin._id,
         }).save();
@@ -327,12 +341,12 @@ methods.recentTransactions = async (req, res) => {
 methods.downloadReport = async (req, res) => {
     try {
         console.log("Download Report Request Received", req.query);
-        const { startDate, endDate, villa } = req.query;
+        const { startDate, endDate, villa, sortBy, sortOrder, reportCategory } = req.query;
         const InventoryTransaction = mongoose.model('InventoryTransaction');
         const Villa = mongoose.model('Villa');
         const pdfController = require('@/controllers/pdfController');
 
-        console.log("Download Param - Start:", startDate, "End:", endDate, "Villa:", villa);
+        console.log("Download Param - Start:", startDate, "End:", endDate, "Villa:", villa, "Category:", reportCategory);
 
         const query = {
             removed: { $ne: true },
@@ -346,11 +360,18 @@ methods.downloadReport = async (req, res) => {
             query.villa = villa;
         }
 
+        if (reportCategory && reportCategory !== 'all') {
+            query.type = reportCategory;
+        }
+
+        const sortField = sortBy || 'date';
+        const sortVal = sortOrder === 'asc' ? 1 : -1;
+
         console.log("Fetching transactions with query:", query);
         const transactions = await InventoryTransaction.find(query)
             .populate('material')
             .populate('villa')
-            .sort({ date: 1 });
+            .sort({ [sortField]: sortVal });
 
         console.log("Found transactions:", transactions.length);
 
@@ -369,7 +390,11 @@ methods.downloadReport = async (req, res) => {
         console.log("Generating PDF Buffer...");
         const pdfBuffer = await pdfController.generatePdf(
             'InventoryReport',
-            { filename: `InventoryReport_${Date.now()}.pdf`, format: 'A4' }, // targetLocation removed
+            { 
+                filename: `InventoryReport_${Date.now()}.pdf`, 
+                format: 'A4',
+                margin: { top: '15mm', right: '20mm', bottom: '15mm', left: '20mm' }
+            },
             model
         );
 
@@ -429,49 +454,67 @@ methods.deleteTransaction = async (req, res) => {
         // Undo Stock Updates
         if (type === 'inward') {
             if (villa) {
-                // Was TRANSFER: Global -> Villa
-                // Undo: VillaStock -= quantity, Global += quantity
-                const villaStock = await VillaStock.findOne({ villa, material: transaction.material });
-                if (villaStock) {
-                    if (villaStock.currentStock < quantity) {
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Cannot undo this transfer because some of these materials have already been used at the Villa.'
-                        });
+                if (transaction.isDirect) {
+                    // Was DIRECT PURCHASE TO VILLA
+                    // Undo: VillaStock -= quantity (do NOT change Global)
+                    const villaStock = await VillaStock.findOne({ villa, material: transaction.material });
+                    if (villaStock) {
+                        if (villaStock.currentStock < quantity) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Cannot undo this direct purchase because some of these materials have already been used at the Villa.'
+                            });
+                        }
+                        const oldVillaStock = villaStock.currentStock;
+                        villaStock.currentStock = calculate.sub(villaStock.currentStock, quantity);
+                        villaStock.lastUpdated = Date.now();
+                        await villaStock.save();
+                        console.log(`Villa Stock undone (direct purchase): ${oldVillaStock} -> ${villaStock.currentStock}`);
                     }
-                    const oldVillaStock = villaStock.currentStock;
-                    villaStock.currentStock = calculate.sub(villaStock.currentStock, quantity);
-                    villaStock.lastUpdated = Date.now();
-                    await villaStock.save();
-                    console.log(`Villa Stock undone: ${oldVillaStock} -> ${villaStock.currentStock}`);
-                }
+                } else {
+                    // Was TRANSFER: Global -> Villa
+                    // Undo: VillaStock -= quantity, Global += quantity
+                    const villaStock = await VillaStock.findOne({ villa, material: transaction.material });
+                    if (villaStock) {
+                        if (villaStock.currentStock < quantity) {
+                            return res.status(400).json({
+                                success: false,
+                                message: 'Cannot undo this transfer because some of these materials have already been used at the Villa.'
+                            });
+                        }
+                        const oldVillaStock = villaStock.currentStock;
+                        villaStock.currentStock = calculate.sub(villaStock.currentStock, quantity);
+                        villaStock.lastUpdated = Date.now();
+                        await villaStock.save();
+                        console.log(`Villa Stock undone: ${oldVillaStock} -> ${villaStock.currentStock}`);
+                    }
 
-                // Return quantity to Global stock
-                const oldGlobalStock = material.currentStock;
-                material.currentStock = calculate.add(material.currentStock, quantity);
-                console.log(`Global Stock restored: ${oldGlobalStock} -> ${material.currentStock}`);
+                    // Return quantity to Global stock
+                    const oldGlobalStock = material.currentStock;
+                    material.currentStock = calculate.add(material.currentStock, quantity);
+                    console.log(`Global Stock restored: ${oldGlobalStock} -> ${material.currentStock}`);
 
-                // Restore FIFO batch remainingQuantity (since this consumption from Global is undone)
-                let pendingRestore = quantity;
-                const batchesToRestore = await InventoryTransaction.find({
-                    material: transaction.material,
-                    type: 'inward',
-                    villa: { $exists: false },
-                    removed: { $ne: true }
-                }).sort({ date: -1, created: -1 });
+                    // Restore FIFO batch remainingQuantity (since this consumption from Global is undone)
+                    let pendingRestore = quantity;
+                    const batchesToRestore = await InventoryTransaction.find({
+                        material: transaction.material,
+                        type: 'inward',
+                        villa: { $exists: false },
+                        removed: { $ne: true }
+                    }).sort({ date: -1, created: -1 });
 
-                for (const batch of batchesToRestore) {
-                    if (pendingRestore <= 0) break;
-                    const space = calculate.sub(batch.quantity, batch.remainingQuantity);
-                    if (space > 0) {
-                        const restoreAmt = Math.min(pendingRestore, space);
-                        batch.remainingQuantity = calculate.add(batch.remainingQuantity, restoreAmt);
-                        pendingRestore = calculate.sub(pendingRestore, restoreAmt);
-                        await batch.save();
-                        console.log(`  - Restored ${restoreAmt} back to batch ${batch._id}`);
+                    for (const batch of batchesToRestore) {
+                        if (pendingRestore <= 0) break;
+                        const space = calculate.sub(batch.quantity, batch.remainingQuantity);
+                        if (space > 0) {
+                            const restoreAmt = Math.min(pendingRestore, space);
+                            batch.remainingQuantity = calculate.add(batch.remainingQuantity, restoreAmt);
+                            pendingRestore = calculate.sub(pendingRestore, restoreAmt);
+                            await batch.save();
+                            console.log(`  - Restored ${restoreAmt} back to batch ${batch._id}`);
+                        }
                     }
                 }
-
             } else {
                 // Was PURCHASE: External -> Global
                 // Undo: Global -= quantity

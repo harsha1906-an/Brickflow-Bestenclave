@@ -69,6 +69,10 @@ const schema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: 'Admin',
     },
+    isDirect: {
+        type: Boolean,
+        default: false,
+    },
     created: {
         type: Date,
         default: Date.now,

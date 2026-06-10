@@ -102,6 +102,7 @@ app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, labourApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, attendanceApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, reportingApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, bookingApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, require('./routes/appRoutes/auditLogApi'));
 app.use('/api/chat', adminAuth.isValidAuthToken, tenantMiddleware, chatApiRouter);
 app.use('/api/analytics', adminAuth.isValidAuthToken, tenantMiddleware, analyticsApiRouter);
 app.use('/api/whatsapp', adminAuth.isValidAuthToken, tenantMiddleware, whatsappApiRouter);

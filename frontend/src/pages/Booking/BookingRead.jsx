@@ -26,8 +26,6 @@ export default function BookingRead() {
     const [paymentModal, setPaymentModal] = useState({ open: false, milestone: null });
     const [isPartialPayment, setIsPartialPayment] = useState(false);
     const [form] = Form.useForm(); // Needed for PaymentModal
-    const whiteAmountWatch = Form.useWatch('whiteAmount', form);
-    const blackAmountWatch = Form.useWatch('blackAmount', form);
 
 
 
@@ -451,11 +449,21 @@ export default function BookingRead() {
                                             Pending: <strong style={{ color: '#1890ff' }}>{moneyFormatter({ amount: pendingWhite })}</strong>
                                         </div>
                                         <Form.Item
-                                            name="whiteAmount"
-                                            label="Paying Amount"
-                                            extra={whiteAmountWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(whiteAmountWatch)}</div> : null}
+                                            noStyle
+                                            shouldUpdate={(prev, curr) => prev.whiteAmount !== curr.whiteAmount}
                                         >
-                                            <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
+                                            {({ getFieldValue }) => {
+                                                const val = getFieldValue('whiteAmount') || 0;
+                                                return (
+                                                    <Form.Item
+                                                        name="whiteAmount"
+                                                        label="Paying Amount"
+                                                        extra={val > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(val)}</div> : null}
+                                                    >
+                                                        <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
+                                                    </Form.Item>
+                                                );
+                                            }}
                                         </Form.Item>
                                         <Form.Item name="whitePaymentMode" label="Payment Mode">
                                             <Select>
@@ -496,11 +504,21 @@ export default function BookingRead() {
                                             Pending: <strong style={{ color: '#ff4d4f' }}>{moneyFormatter({ amount: pendingBlack })}</strong>
                                         </div>
                                         <Form.Item
-                                            name="blackAmount"
-                                            label="Paying Amount"
-                                            extra={blackAmountWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(blackAmountWatch)}</div> : null}
+                                            noStyle
+                                            shouldUpdate={(prev, curr) => prev.blackAmount !== curr.blackAmount}
                                         >
-                                            <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
+                                            {({ getFieldValue }) => {
+                                                const val = getFieldValue('blackAmount') || 0;
+                                                return (
+                                                    <Form.Item
+                                                        name="blackAmount"
+                                                        label="Paying Amount"
+                                                        extra={val > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(val)}</div> : null}
+                                                    >
+                                                        <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
+                                                    </Form.Item>
+                                                );
+                                            }}
                                         </Form.Item>
 
                                         <Form.Item name="blackPaymentMode" label="Payment Mode">

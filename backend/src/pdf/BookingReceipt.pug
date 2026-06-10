@@ -164,7 +164,7 @@ html
       .header
         .logo-section
           if logo
-            img(src=logo, style="width: 100%; max-width: 35mm; height: auto;")
+            img(src=logo, style="width: 100%; max-width: 52mm; height: auto;")
           else
             h1(style="font-size:30pt; margin:0; line-height:0.8;") 
               span(style="color:#bfa05f") #{settings.currency_symbol} 
@@ -199,7 +199,7 @@ html
 
       .field-row
         span.label For
-        div.value-line Booking Advance for Plot No: #{model.villa ? model.villa.villaNumber : ''}
+        div.value-line #{model.milestoneName || 'Booking Advance'} for Plot No: #{model.villa ? model.villa.villaNumber : ''}
 
       .row
         div(style="width: 40%; display:flex")

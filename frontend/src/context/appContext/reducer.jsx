@@ -3,7 +3,7 @@ import * as actionTypes from './types';
 export const initialState = {
   isNavMenuClose: false,
   currentApp: 'default',
-  currentCompany: null,
+  currentCompany: window.localStorage.getItem('currentCompany') || null,
 };
 
 export function contextReducer(state, action) {
@@ -34,6 +34,11 @@ export function contextReducer(state, action) {
         currentApp: 'default',
       };
     case actionTypes.SET_COMPANY:
+      if (action.payload) {
+        window.localStorage.setItem('currentCompany', action.payload);
+      } else {
+        window.localStorage.removeItem('currentCompany');
+      }
       return {
         ...state,
         currentCompany: action.payload,

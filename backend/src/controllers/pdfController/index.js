@@ -39,7 +39,7 @@ exports.generatePdf = async (
       const translate = useLanguage({ selectedLang });
 
       const {
-        currency_symbol = '₹',
+        currency_symbol = '�,1',
         currency_position = 'before',
         decimal_sep = '.',
         thousand_sep = ',',
@@ -84,16 +84,26 @@ exports.generatePdf = async (
 
       // Load Logo
       let logoBase64 = null;
-      if (['bookingreceipt', 'expensevoucher', 'pettycashreport', 'dailyexpensereport', 'customerdetails', 'supplierdetails', 'bookingdetails', 'villareport'].includes(normalizedModelName)) {
-        try {
-          const logoPath = path.resolve(__dirname, '../../public/uploads/logo.png');
+      try {
+        if (settings.company_logo) {
+          const logoPath = path.resolve(__dirname, '../../', settings.company_logo);
           if (fs.existsSync(logoPath)) {
             const logoBitmap = fs.readFileSync(logoPath);
+            const extension = path.extname(logoPath).replace('.', '') || 'png';
+            logoBase64 = `data:image/${extension};base64,${logoBitmap.toString('base64')}`;
+          }
+        }
+        
+        // Fallback to logo.png
+        if (!logoBase64) {
+          const defaultLogoPath = path.resolve(__dirname, '../../public/uploads/logo.png');
+          if (fs.existsSync(defaultLogoPath)) {
+            const logoBitmap = fs.readFileSync(defaultLogoPath);
             logoBase64 = `data:image/png;base64,${logoBitmap.toString('base64')}`;
           }
-        } catch (err) {
-          console.error('Error loading logo:', err);
         }
+      } catch (err) {
+        console.error('Error loading logo:', err);
       }
 
       const htmlContent = pug.renderFile(templatePath, {
@@ -137,7 +147,7 @@ exports.generatePdf = async (
         format: info.format || 'A4',
         landscape: info.landscape === undefined ? false : info.landscape, // Default to Portrait for Daily Report (A4) unless specified
         printBackground: true,
-        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        margin: info.margin || { top: 0, right: 0, bottom: 0, left: 0 },
       });
       console.log('PDF Buffer Generated. Size:', pdfBuffer.length);
 
@@ -155,13 +165,42 @@ exports.generatePdf = async (
 exports.downloadDailyReport = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { date, startDate, endDate } = req.query;
+    const { date, startDate, endDate, reportCategory } = req.query;
 
     console.log(`Generating Daily Expense Report PDF for Company: ${companyId}, Date: ${date || (startDate + ' to ' + endDate)}`);
 
     // Pass startDate/endDate if available, otherwise just date
     const start = date || startDate;
-    const result = await getDailyReportData(companyId, start, endDate);
+    let result = await getDailyReportData(companyId, start, endDate);
+
+    const filterDailyReportItems = (reportObj) => {
+      if (!reportCategory || reportCategory === 'all') return reportObj;
+      let filteredItems = reportObj.items || [];
+      if (reportCategory === 'income') {
+        filteredItems = filteredItems.filter(i => i.type === 'income');
+      } else if (reportCategory === 'expense') {
+        filteredItems = filteredItems.filter(i => i.type === 'expense');
+      } else if (reportCategory === 'labour') {
+        filteredItems = filteredItems.filter(i => i.category === 'Labour' || i.category === 'Wages');
+      } else if (reportCategory === 'supplier') {
+        filteredItems = filteredItems.filter(i => i.category === 'Supplier');
+      }
+      const totalExpense = filteredItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
+      const totalIncome = filteredItems.filter(i => i.type === 'income').reduce((sum, i) => sum + i.amount, 0);
+      return {
+        ...reportObj,
+        items: filteredItems,
+        totalExpense,
+        totalIncome,
+        netBalance: totalIncome - totalExpense
+      };
+    };
+
+    if (Array.isArray(result)) {
+      result = result.map(filterDailyReportItems);
+    } else {
+      result = filterDailyReportItems(result);
+    }
 
     const rawPdf = await exports.generatePdf(
       'dailyExpenseReport',
@@ -374,10 +413,7 @@ exports.downloadBookingReceipt = async (req, res) => {
       inWords: numberToWords(milestone.paidAmount || milestone.amount || 0),
       transactionId: milestone.transactionId || milestone.notes || result.transactionId || '-',
       paymentMethod: milestone.paymentMode || result.paymentMethod || 'Bank Transfer',
-      // You might want to customize the "For" description in the template if possible, 
-      // but the template hardcodes "Booking Advance for Plot No...". 
-      // We might need to adjust the template or accept that text.  
-      // For now, we reuse the template as requested.
+      milestoneName: milestone.name,
     };
 
     console.log(`Generating Booking Receipt for Milestone: ${milestone.name}`);
@@ -547,7 +583,7 @@ exports.downloadVillaReport = async (req, res) => {
 
 exports.downloadExpenseReport = async (req, res) => {
   try {
-    const { startDate, endDate, recipientType, villa, labourSkill, supplier, supplierType } = req.query;
+    const { startDate, endDate, recipientType, villa, labourSkill, supplier, supplierType, sortBy, sortOrder } = req.query;
     const companyId = req.params.companyId;
 
     console.log(`Generating Expense Report PDF for Company: ${companyId}`);
@@ -605,8 +641,11 @@ exports.downloadExpenseReport = async (req, res) => {
       }
     }
 
+    const sortField = sortBy || 'date';
+    const sortVal = sortOrder === 'asc' ? 1 : -1;
+
     const items = await Expense.find(filter)
-      .sort({ date: -1 })
+      .sort({ [sortField]: sortVal })
       .populate('supplier')
       .populate('labour')
       .lean();
@@ -646,102 +685,172 @@ exports.downloadExpenseReport = async (req, res) => {
 
 exports.downloadTaxReport = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, sortBy, sortOrder, reportCategory } = req.query;
     const companyId = req.params.companyId;
 
-    console.log(`Generating Tax Report PDF for Company: ${companyId}`);
+    console.log(`Generating Tax Report PDF for Company: ${companyId}, ${startDate} to ${endDate}`);
 
     const Payment = mongoose.model('Payment');
     const Expense = mongoose.model('Expense');
 
-    let filter = { removed: false };
-    if (companyId) filter.companyId = companyId;
-
+    let dateFilter = {};
     if (startDate && endDate) {
-      filter.date = {
+      dateFilter = {
         $gte: new Date(startDate),
         $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
       };
     }
 
-    const payments = await Payment.find(filter).populate('client').lean();
-    const expenses = await Expense.find(filter).populate('supplier').populate('labour').lean();
+    let paymentFilter = { removed: false, ledger: { $ne: 'internal' } };
+    if (companyId) paymentFilter.companyId = companyId;
+    if (startDate && endDate) paymentFilter.date = dateFilter;
 
-    const allTransactions = [];
+    let expenseFilter = { removed: false };
+    if (companyId) expenseFilter.companyId = companyId;
+    if (startDate && endDate) expenseFilter.date = dateFilter;
 
-    payments.forEach(p => {
-      allTransactions.push({
-        date: p.date,
-        ref: p.number || (p._id ? p._id.toString().slice(-6) : '-'),
-        entity: p.client ? p.client.name : 'Unknown Client',
-        description: `Income - Ref: ${p.ref || ''}`,
-        type: 'credit',
-        amount: parseFloat(p.amount) || 0
-      });
-    });
+    const sortField = sortBy || 'date';
+    const sortVal = sortOrder === 'asc' ? 1 : -1;
 
-    expenses.forEach(e => {
-        let entityName = 'Unknown';
-        if (e.recipientType === 'supplier' && e.supplier) entityName = e.supplier.name;
-        if (e.recipientType === 'labour' && e.labour) entityName = e.labour.name;
+    let includeIncome = !reportCategory || reportCategory === 'all' || reportCategory === 'income';
+    let includeExpense = !reportCategory || reportCategory === 'all' || reportCategory === 'expense' || reportCategory === 'labour' || reportCategory === 'supplier';
 
-      allTransactions.push({
-        date: e.date,
-        ref: e.number || (e._id ? e._id.toString().slice(-6) : '-'),
-        entity: entityName,
-        description: e.name || e.expenseCategory?.name || 'Expense',
-        type: 'debit',
-        amount: parseFloat(e.amount) || 0
-      });
-    });
+    if (reportCategory === 'labour') {
+      expenseFilter.recipientType = 'Labour';
+    } else if (reportCategory === 'supplier') {
+      expenseFilter.recipientType = 'Supplier';
+    }
 
-    allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Fetch payments with client populated
+    let payments = [];
+    if (includeIncome) {
+      payments = await Payment.find(paymentFilter)
+        .populate('client')
+        .populate('tax')
+        .sort({ [sortField]: sortVal })
+        .lean();
+    }
 
-    const groupedMap = {};
+    // Fetch expenses with supplier and labour populated
+    let expenses = [];
+    if (includeExpense) {
+      expenses = await Expense.find(expenseFilter)
+        .populate('supplier')
+        .populate('labour')
+        .populate('tax')
+        .sort({ [sortField]: sortVal })
+        .lean();
+    }
+
+    // Build income rows (payments)
     let totalIncome = 0;
-    let totalExpense = 0;
-
-    allTransactions.forEach(trx => {
-      const dateStr = moment(trx.date).format('DD/MM/YYYY');
-      if (!groupedMap[dateStr]) {
-        groupedMap[dateStr] = {
-          dateStr,
-          transactions: [],
-          dailyCredit: 0,
-          dailyDebit: 0
-        };
-      }
-
-      groupedMap[dateStr].transactions.push(trx);
-      if (trx.type === 'credit') {
-        groupedMap[dateStr].dailyCredit += trx.amount;
-        totalIncome += trx.amount;
-      } else {
-        groupedMap[dateStr].dailyDebit += trx.amount;
-        totalExpense += trx.amount;
-      }
+    let totalIncomeTax = 0;
+    const incomeRows = payments.map(p => {
+      const baseAmount = p.amount || 0;
+      const taxAmount = p.taxAmount || 0;
+      const total = p.totalAmount || (baseAmount + taxAmount);
+      totalIncome += baseAmount;
+      totalIncomeTax += taxAmount;
+      return {
+        date: p.date,
+        dateStr: moment(p.date).format('DD/MM/YYYY'),
+        ref: p.ref || p.transactionCode || (p._id ? p._id.toString().slice(-6).toUpperCase() : '-'),
+        entity: p.client ? p.client.name : 'Unknown Client',
+        description: p.description || p.buildingStage || 'Customer Payment',
+        paymentMode: p.paymentMode || '-',
+        paymentType: p.paymentType || 'Construction',
+        ledger: p.ledger || 'official',
+        baseAmount,
+        taxRate: p.taxRate || 0,
+        taxAmount,
+        taxType: p.taxType || 'None',
+        cgst: p.taxType === 'CGST_SGST' ? taxAmount / 2 : 0,
+        sgst: p.taxType === 'CGST_SGST' ? taxAmount / 2 : 0,
+        igst: p.taxType === 'IGST' ? taxAmount : 0,
+        totalAmount: total,
+      };
     });
 
-    const groupedDays = Object.values(groupedMap);
+    // Build expense rows
+    let totalExpense = 0;
+    let totalExpenseTax = 0;
+    const expenseRows = expenses.map(e => {
+      const baseAmount = e.amount || 0;
+      const taxAmount = e.taxAmount || 0;
+      const total = e.totalAmount || (baseAmount + taxAmount);
+      totalExpense += baseAmount;
+      totalExpenseTax += taxAmount;
+
+      // FIX: recipientType is 'Supplier' or 'Labour' (capitalized) per enum
+      let entityName = e.otherRecipient || 'Other';
+      if (e.recipientType === 'Supplier' && e.supplier) entityName = e.supplier.name;
+      if (e.recipientType === 'Labour' && e.labour) entityName = e.labour.name;
+
+      return {
+        date: e.date,
+        dateStr: moment(e.date).format('DD/MM/YYYY'),
+        ref: e.reference || (e._id ? e._id.toString().slice(-6).toUpperCase() : '-'),
+        entity: entityName,
+        recipientType: e.recipientType || 'Other',
+        description: e.description || '-',
+        paymentMode: e.paymentMode || '-',
+        paymentType: e.paymentType || 'Construction',
+        baseAmount,
+        taxRate: e.taxRate || 0,
+        taxAmount,
+        taxType: e.taxType || 'None',
+        cgst: e.taxType === 'CGST_SGST' ? taxAmount / 2 : 0,
+        sgst: e.taxType === 'CGST_SGST' ? taxAmount / 2 : 0,
+        igst: e.taxType === 'IGST' ? taxAmount : 0,
+        totalAmount: total,
+      };
+    });
+
     const netProfit = totalIncome - totalExpense;
+    const netTaxBalance = totalIncomeTax - totalExpenseTax;
+
+    // Summarize income by payment type
+    const incomeByType = {};
+    incomeRows.forEach(r => {
+      const k = r.paymentType || 'Other';
+      if (!incomeByType[k]) incomeByType[k] = 0;
+      incomeByType[k] += r.baseAmount;
+    });
+
+    // Summarize expenses by recipient type
+    const expenseByType = {};
+    expenseRows.forEach(r => {
+      const k = r.recipientType || 'Other';
+      if (!expenseByType[k]) expenseByType[k] = 0;
+      expenseByType[k] += r.baseAmount;
+    });
 
     const data = {
-      groupedDays,
+      incomeRows,
+      expenseRows,
       totalIncome,
+      totalIncomeTax,
       totalExpense,
+      totalExpenseTax,
       netProfit,
+      netTaxBalance,
+      incomeByType,
+      expenseByType,
       startDate: startDate ? moment(startDate).format('DD/MM/YYYY') : null,
       endDate: endDate ? moment(endDate).format('DD/MM/YYYY') : null,
     };
 
     const rawPdf = await exports.generatePdf(
       'taxreport',
-      { format: 'A4', landscape: false },
+      { format: 'A4', landscape: true },
       data
     );
     const pdfBuffer = Buffer.from(rawPdf);
 
-    const filename = `Tax_Report_${moment().format('YYYY-MM-DD')}.pdf`;
+    let filename = `TaxReport_${moment().format('YYYY-MM-DD')}.pdf`;
+    if (startDate && endDate) {
+      filename = `TaxReport_${startDate}_to_${endDate}.pdf`;
+    }
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -760,4 +869,3 @@ exports.downloadTaxReport = async (req, res) => {
     });
   }
 };
-

@@ -21,6 +21,12 @@ axiosInstance.interceptors.request.use(
     if (auth && auth.current && auth.current.token) {
       config.headers['Authorization'] = `Bearer ${auth.current.token}`;
     }
+    
+    const currentCompany = window.localStorage.getItem('currentCompany');
+    if (currentCompany) {
+      config.headers['x-tenant-id'] = currentCompany;
+    }
+    
     return config;
   },
   (error) => {
@@ -304,7 +310,8 @@ const request = {
       });
       return response;
     } catch (error) {
-      return errorHandler(error);
+      errorHandler(error);
+      throw error;
     }
   },
   pdf: async ({ entity, options = {} }) => {
@@ -320,7 +327,8 @@ const request = {
       });
       return response;
     } catch (error) {
-      return errorHandler(error);
+      errorHandler(error);
+      throw error;
     }
   },
 };

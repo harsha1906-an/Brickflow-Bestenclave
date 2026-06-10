@@ -22,7 +22,6 @@ const PettyCashList = () => {
     const translate = useLanguage();
     const { role } = useUserRole();
 
-    const amountWatch = Form.useWatch('amount', form);
     const [reportRange, setReportRange] = useState([dayjs(), dayjs()]);
     const [reportDate, setReportDate] = useState(dayjs());
 
@@ -284,18 +283,28 @@ const PettyCashList = () => {
                         <Input placeholder={modalType === 'inward' ? 'e.g. Weekly Cash for Site' : 'e.g. Material Purchase'} />
                     </Form.Item>
                     <Form.Item
-                        name="amount"
-                        label="Amount"
-                        rules={[{ required: true, message: 'Please enter amount' }]}
-                        extra={amountWatch > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(amountWatch)}</div> : null}
+                        noStyle
+                        shouldUpdate={(prev, curr) => prev.amount !== curr.amount}
                     >
-                        <InputNumber
-                            style={{ width: '100%' }}
-                            min={1}
-                            placeholder="0.00"
-                            formatter={inputFormatter}
-                            parser={inputParser}
-                        />
+                        {({ getFieldValue }) => {
+                            const amountWatch = getFieldValue('amount') || 0;
+                            return (
+                                <Form.Item
+                                    name="amount"
+                                    label="Amount"
+                                    rules={[{ required: true, message: 'Please enter amount' }]}
+                                    extra={amountWatch > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(amountWatch)}</div> : null}
+                                >
+                                    <InputNumber
+                                        style={{ width: '100%' }}
+                                        min={1}
+                                        placeholder="0.00"
+                                        formatter={inputFormatter}
+                                        parser={inputParser}
+                                    />
+                                </Form.Item>
+                            );
+                        }}
                     </Form.Item>
                     <Form.Item name="date" label="Date" rules={[{ required: true }]}>
                         <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />

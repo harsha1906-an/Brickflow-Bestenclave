@@ -23,7 +23,8 @@ const generateDailySummary = async (companyId, date = new Date()) => {
 
     // 2. Inventory Inward/Outward
     const inventory = await InventoryTransaction.find({
-        date: { $gte: startOfDay, $lte: endOfDay }
+        date: { $gte: startOfDay, $lte: endOfDay },
+        removed: false
     }).populate('material');
 
     const inwardCount = inventory.filter(i => i.type === 'inward').length;
@@ -42,7 +43,8 @@ const generateDailySummary = async (companyId, date = new Date()) => {
     const PettyCashTransaction = mongoose.model('PettyCashTransaction');
     const pettyCash = await PettyCashTransaction.find({
         date: { $gte: startOfDay, $lte: endOfDay },
-        type: 'outward'
+        type: 'outward',
+        removed: false
     });
     const totalPettyCash = pettyCash.reduce((sum, p) => sum + (p.amount || 0), 0);
 
@@ -82,12 +84,13 @@ const generateDailySummary = async (companyId, date = new Date()) => {
             count: expenses.length
         },
         customerCollections: totalCollections,
-        totalDailyExpense: totalWage + totalPettyCash + totalMainExpenses
+        totalDailyExpense: totalWage + totalPettyCash + totalMainExpenses,
+        items: (await getSingleDayReportData(companyId, date)).items
     };
 };
 
 // Helper to gather detailed data for PDF (Single Day)
-const getSingleDayReportData = async (companyId, date) => {
+async function getSingleDayReportData(companyId, date) {
     const Expense = mongoose.model('Expense');
     const PettyCashTransaction = mongoose.model('PettyCashTransaction');
     const Attendance = mongoose.model('Attendance');
@@ -133,7 +136,7 @@ const getSingleDayReportData = async (companyId, date) => {
             type: 'expense',
             category: 'Petty Cash',
             payee: 'Cash',
-            description: pc.description || '-',
+            description: pc.name || pc.note || '-',
             amount: pc.amount,
             color: '#ffebee'
         });
@@ -168,7 +171,7 @@ const getSingleDayReportData = async (companyId, date) => {
 
     for (const p of payments) {
         let payee = p.client ? p.client.name : 'Unknown Client';
-        let desc = p.villa ? `Villa: ${p.villa.name}` : '-';
+        let desc = p.villa ? `Villa: ${p.villa.villaNumber}` : '-';
         if (p.description) desc += ` | ${p.description}`;
 
         items.push({

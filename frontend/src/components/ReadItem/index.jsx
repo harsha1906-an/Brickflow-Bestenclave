@@ -24,16 +24,22 @@ export default function ReadItem({ config }) {
   if (fields) readColumns = [...dataForRead({ fields: fields, translate: translate })];
   useEffect(() => {
     const list = [];
-    readColumns.map((props) => {
-      const propsKey = props.dataIndex;
-      const propsTitle = props.title;
-      const isDate = props.isDate || false;
-      let value = valueByString(currentResult, propsKey);
-      value = isDate ? dayjs(value).format(dateFormat) : value;
-      list.push({ propsKey, label: propsTitle, value: value });
-    });
+    if (currentResult) {
+      readColumns.map((props) => {
+        const propsKey = props.dataIndex;
+        const propsTitle = props.title;
+        const isDate = props.isDate || false;
+        let value = valueByString(currentResult, propsKey);
+        if (props.render) {
+          value = props.render(value, currentResult);
+        } else {
+          value = isDate ? (value ? dayjs(value).format(dateFormat) : '') : value;
+        }
+        list.push({ propsKey, label: propsTitle, value: value });
+      });
+    }
     setListState(list);
-  }, [currentResult]);
+  }, [currentResult, readColumns, dateFormat]);
 
   const show = isReadBoxOpen ? { display: 'block', opacity: 1 } : { display: 'none', opacity: 0 };
 
@@ -41,13 +47,13 @@ export default function ReadItem({ config }) {
     return (
       <Row key={item.propsKey} gutter={12}>
         <Col className="gutter-row" span={8}>
-          <p>{item.label}</p>
+          <div style={{ margin: '1em 0' }}>{item.label}</div>
         </Col>
         <Col className="gutter-row" span={2}>
-          <p> : </p>
+          <div style={{ margin: '1em 0' }}> : </div>
         </Col>
         <Col className="gutter-row" span={14}>
-          <p>{item.value}</p>
+          <div style={{ margin: '1em 0' }}>{item.value}</div>
         </Col>
       </Row>
     );

@@ -47,28 +47,36 @@ export default function DataTable({ config, extra = [] }) {
   const { moneyFormatter } = useMoney();
   const { dateFormat } = useDate();
 
-  const items = [
-    {
-      label: translate('Show'),
-      key: 'read',
-      icon: <EyeOutlined />,
-    },
-    {
-      label: translate('Edit'),
-      key: 'edit',
-      icon: <EditOutlined />,
-    },
-    ...extra,
-    {
-      type: 'divider',
-    },
-
-    {
-      label: translate('Delete'),
-      key: 'delete',
-      icon: <DeleteOutlined />,
-    },
-  ];
+  const items = config.readOnly
+    ? [
+        {
+          label: translate('Show'),
+          key: 'read',
+          icon: <EyeOutlined />,
+        },
+        ...extra,
+      ]
+    : [
+        {
+          label: translate('Show'),
+          key: 'read',
+          icon: <EyeOutlined />,
+        },
+        {
+          label: translate('Edit'),
+          key: 'edit',
+          icon: <EditOutlined />,
+        },
+        ...extra,
+        {
+          type: 'divider',
+        },
+        {
+          label: translate('Delete'),
+          key: 'delete',
+          icon: <DeleteOutlined />,
+        },
+      ];
 
   const handleRead = (record) => {
     dispatch(crud.currentItem({ data: record }));
@@ -192,9 +200,8 @@ export default function DataTable({ config, extra = [] }) {
           <Button onClick={handelDataTableLoad} key={`${uniqueId()}`} icon={<RedoOutlined />}>
             {translate('Refresh')}
           </Button>,
-
-          <AddNewItem key={`${uniqueId()}`} config={config} />,
-        ]}
+          !config.readOnly && <AddNewItem key={`${uniqueId()}`} config={config} />,
+        ].filter(Boolean)}
         style={{
           padding: '20px 0px',
         }}

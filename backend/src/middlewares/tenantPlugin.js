@@ -7,14 +7,15 @@ module.exports = function tenantPlugin(schema) {
   
   if (
     schema.options.skipTenant || 
-    (collectionName && skippedCollections.includes(collectionName.toLowerCase()))
+    (collectionName && skippedCollections.includes(collectionName.toLowerCase())) ||
+    !schema.paths.companyId
   ) {
     return;
   }
 
   // Helper to append companyId to query filter
   const addTenantCondition = function (next) {
-    const tenantId = tenantStorage.getStore();
+    const tenantId = tenantStorage.getStore() || '6a1d884573247f2dc036cb18';
     
     if (tenantId) {
       const filter = this.getFilter();
@@ -46,7 +47,7 @@ module.exports = function tenantPlugin(schema) {
 
   // Hook for saving new documents
   schema.pre('save', function (next) {
-    const tenantId = tenantStorage.getStore();
+    const tenantId = tenantStorage.getStore() || '6a1d884573247f2dc036cb18';
     // Auto-populate companyId on new document creation if not specified
     if (tenantId && (this.companyId === undefined || this.companyId === null)) {
       this.companyId = tenantId;

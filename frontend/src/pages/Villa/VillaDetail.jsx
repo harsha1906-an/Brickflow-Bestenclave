@@ -92,7 +92,7 @@ const VillaProgressSection = ({ companyId, villaId }) => {
         onOk={role === 'ACCOUNTANT' ? undefined : handleOk}
         onCancel={() => setModalOpen(false)}
         okButtonProps={role === 'ACCOUNTANT' ? { disabled: true } : {}}
-        destroyOnClose
+        forceRender
       >
         <Form form={form} layout="vertical">
           <Form.Item name="stage" label="Stage" rules={[{ required: true }]}>
@@ -101,8 +101,15 @@ const VillaProgressSection = ({ companyId, villaId }) => {
           <Form.Item name="percentage" label="Percentage" rules={[{ required: true, type: 'number', min: 0, max: 100 }]}>
             <InputNumber min={0} max={100} disabled={role === 'ACCOUNTANT'} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="notes" label="Notes" rules={[]}>
-            <Input disabled={role === 'ACCOUNTANT' || form.getFieldValue('stage') !== 'other'} placeholder="Add details if 'Other'" />
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.stage !== currentValues.stage}
+          >
+            {({ getFieldValue }) => (
+              <Form.Item name="notes" label="Notes" rules={[]}>
+                <Input disabled={role === 'ACCOUNTANT' || getFieldValue('stage') !== 'other'} placeholder="Add details if 'Other'" />
+              </Form.Item>
+            )}
           </Form.Item>
         </Form>
       </Modal>

@@ -11,6 +11,18 @@ const create = async (Model, req, res) => {
     ...req.body,
   }).save();
 
+  const { logAuditAction } = require('../../../modules/AuditLogModule/auditLog.middleware');
+  logAuditAction({
+    req,
+    module: Model.modelName,
+    action: 'create',
+    entityType: Model.modelName,
+    entityId: result._id,
+    metadata: {
+      new: result.toObject(),
+    },
+  });
+
   // Returning successfull response
   return res.status(200).json({
     success: true,

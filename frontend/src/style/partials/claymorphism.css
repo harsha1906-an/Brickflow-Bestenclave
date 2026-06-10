@@ -1,0 +1,403 @@
+
+/* Claymorphism Global Theme */
+
+/* Light Theme Variables */
+:root {
+  --clay-bg: #f0f4f8;
+  --clay-card-bg: #ffffff;
+  --clay-text-color: #1f1f1f;
+  --clay-shadow-out: 
+    8px 8px 16px rgba(163, 177, 198, 0.4), 
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+  --clay-shadow-inset: 
+    inset 6px 6px 10px 0 rgba(163, 177, 198, 0.3), 
+    inset -6px -6px 10px 0 rgba(255, 255, 255, 0.8);
+  --clay-radius: 24px;
+  --clay-btn-radius: 50px;
+  --clay-border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Dark Theme Variables Override */
+[data-theme='dark'], .dark-theme {
+  --clay-bg: #1a1b1e;
+  --clay-card-bg: #25262b;
+  --clay-text-color: #e0e0e0;
+  
+  /* Dark mode shadows are inverted: dark shadow for depth, slightly lighter shadow for highlight */
+  --clay-shadow-out: 
+    8px 8px 16px rgba(0, 0, 0, 0.6), 
+    -8px -8px 16px rgba(255, 255, 255, 0.05);
+    
+  --clay-shadow-inset: 
+    inset 4px 4px 8px 0 rgba(0, 0, 0, 0.6), 
+    inset -4px -4px 8px 0 rgba(255, 255, 255, 0.05);
+    
+  --clay-border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+
+/* 1. Global Background */
+body, .ant-layout {
+  background-color: var(--clay-bg) !important;
+  color: var(--clay-text-color) !important;
+}
+
+/* 2. Cards & Containers (Inflated Look) */
+.ant-card, .whiteBox, .ant-layout-sider, .ant-menu, .ant-dropdown-menu {
+  background-color: var(--clay-card-bg) !important;
+  border-radius: var(--clay-radius) !important;
+  border: var(--clay-border) !important;
+  box-shadow: var(--clay-shadow-out) !important;
+  transition: all 0.3s ease;
+  color: var(--clay-text-color) !important;
+}
+
+/* Remove default AntD borders to prefer shadows */
+.ant-card-bordered {
+  border: var(--clay-border) !important;
+}
+
+/* 3. Buttons (Squishy & Consistent) */
+/* Base Button Style */
+.ant-btn {
+  border-radius: var(--clay-btn-radius) !important;
+  border: none !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease-in-out !important;
+  height: auto !important;
+  padding: 6px 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Default / Secondary Button */
+.ant-btn-default, 
+.ant-btn:not(.ant-btn-primary):not(.ant-btn-text):not(.ant-btn-link):not(.ant-btn-dashed) {
+  background-color: var(--clay-card-bg) !important;
+  color: var(--clay-text-color) !important;
+  box-shadow: var(--clay-shadow-out) !important;
+}
+
+/* Primary Button */
+.ant-btn-primary {
+  background: linear-gradient(145deg, #1890ff, #096dd9) !important;
+  color: #fff !important;
+  box-shadow: 
+    5px 5px 10px rgba(24, 144, 255, 0.4), 
+    -2px -2px 6px rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+}
+
+/* Dashed Button */
+.ant-btn-dashed {
+  background: transparent !important;
+  border: 1px dashed var(--clay-text-color) !important;
+  box-shadow: none !important;
+  color: var(--clay-text-color) !important;
+}
+
+/* Text / Link Button (No shadow, just text) */
+.ant-btn-text, .ant-btn-link {
+  box-shadow: none !important;
+  background: transparent !important;
+  color: #1890ff !important;
+}
+.ant-btn-text:hover {
+  background: rgba(0,0,0,0.05) !important;
+}
+
+/* Active / Pressed State (Crucial for "Squishy" feel) */
+.ant-btn:active, .ant-btn.active, .ant-btn-primary:active {
+  transform: scale(0.96) !important;
+  box-shadow: var(--clay-shadow-inset) !important;
+}
+
+/* Hover State */
+.ant-btn:hover {
+  transform: translateY(-2px);
+}
+.ant-btn-primary:hover {
+  box-shadow: 
+    6px 6px 12px rgba(24, 144, 255, 0.5), 
+    -3px -3px 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Danger Button */
+.ant-btn-dangerous, .ant-btn-dangerous.ant-btn-primary {
+  background: linear-gradient(145deg, #ff4d4f, #cf1322) !important;
+  color: white !important;
+  box-shadow: 
+    4px 4px 10px rgba(255, 77, 79, 0.4), 
+    -2px -2px 10px rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+}
+.ant-btn-dangerous:hover {
+  box-shadow: 
+    6px 6px 12px rgba(255, 77, 79, 0.5), 
+    -3px -3px 8px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* 4. Inputs (Deep/Pressed Look) */
+/* Apply to base inputs and wrappers */
+.ant-input, 
+.ant-select-selector, 
+.ant-picker,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-input-password {
+  border-radius: 16px !important;
+  background-color: var(--clay-bg) !important;
+  border: 1px solid transparent !important;
+  box-shadow: var(--clay-shadow-inset) !important;
+  color: var(--clay-text-color) !important;
+  transition: all 0.3s ease;
+}
+
+/* Fix for Search Inputs & Affix Wrappers (Icon inside input) */
+.ant-input-affix-wrapper {
+    padding: 8px 16px !important; /* Wrapper gets the padding */
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* The actual input element inside a wrapper should be transparent */
+.ant-input-affix-wrapper .ant-input,
+.ant-input-password .ant-input,
+.ant-input-number .ant-input-number-input {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Focus State */
+.ant-input:focus, 
+.ant-select-selector:focus, 
+.ant-picker-focused,
+.ant-input-affix-wrapper-focused,
+.ant-input-number-focused {
+  background-color: var(--clay-card-bg) !important;
+  border: 1px solid #1890ff !important;
+  box-shadow: 
+    inset 2px 2px 5px rgba(0,0,0,0.1), 
+    inset -2px -2px 5px rgba(255,255,255,0.5) !important;
+}
+
+/* Fix Icon Color inside Input */
+.ant-input-prefix, .ant-input-suffix {
+    color: var(--clay-text-color) !important;
+    opacity: 0.7;
+    margin-right: 8px; /* space for prefix */
+}
+
+/* 5. Sidebar/Navigation */
+.ant-layout-sider {
+  margin: 16px;
+  height: calc(100vh - 32px) !important;
+  /* Shadow is handled by general card rule above */
+}
+
+/* Fix for Sidebar needing to be contained */
+.ant-layout-has-sider {
+  background-color: var(--clay-bg) !important;
+}
+
+/* 6. Modals */
+.ant-modal-content {
+  background-color: var(--clay-card-bg) !important;
+  border-radius: var(--clay-radius) !important;
+  box-shadow: var(--clay-shadow-out) !important;
+  color: var(--clay-text-color) !important;
+}
+.ant-modal-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--clay-bg) !important;
+}
+.ant-modal-title {
+    color: var(--clay-text-color) !important;
+}
+
+/* 7. Tables */
+.ant-table {
+  background: transparent !important;
+  border-radius: var(--clay-radius);
+  color: var(--clay-text-color) !important;
+}
+.ant-table-container {
+  border-radius: var(--clay-radius) !important;
+  overflow: hidden;
+  box-shadow: var(--clay-shadow-inset);
+  background-color: var(--clay-card-bg) !important;
+}
+.ant-table-thead > tr > th {
+  background: var(--clay-bg) !important;
+  border-bottom: 1px solid var(--clay-bg) !important;
+  color: var(--clay-text-color) !important;
+}
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--clay-bg) !important;
+  color: var(--clay-text-color) !important;
+}
+.ant-table-tbody > tr:hover > td {
+    background: var(--clay-bg) !important;
+}
+
+/* 15. Table Action Buttons (3-dots, download, etc) */
+.ant-table-cell .ant-dropdown-trigger, 
+.ant-table-cell .anticon-ellipsis,
+.ant-table-cell .anticon-download {
+    cursor: pointer;
+    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    
+    /* Clay Button Style */
+    background-color: var(--clay-card-bg);
+    box-shadow: var(--clay-shadow-out);
+    color: var(--clay-text-color);
+    margin: 0 4px;
+    transition: all 0.2s ease;
+}
+
+.ant-table-cell .ant-dropdown-trigger:hover,
+.ant-table-cell .anticon-ellipsis:hover,
+.ant-table-cell .anticon-download:hover {
+    transform: translateY(-2px);
+    color: #1890ff; /* Primary color on hover */
+    background-color: var(--clay-card-bg); /* Ensure bg stays */
+}
+
+.ant-table-cell .ant-dropdown-trigger:active {
+    box-shadow: var(--clay-shadow-inset);
+    transform: scale(0.95);
+}
+
+/* Fix for Table Header & Row Styling */
+.ant-table-thead > tr > th {
+    background: transparent !important; /* Transparent to show container bg */
+    border-bottom: 2px solid var(--clay-bg) !important; /* Thicker divider */
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.ant-table-tbody > tr > td {
+    border-bottom: 1px dashed var(--clay-bg) !important; /* Dashed lines for lighter feel */
+    background: transparent !important;
+}
+
+/* Hover Row Effect (Highlight) */
+.ant-table-tbody > tr:hover > td {
+    background-color: var(--clay-bg) !important; /* Matches background for 'cutout' look */
+    /* Or use a contrasting color? Usually clay just recesses. */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05), inset 0 -2px 4px rgba(0,0,0,0.05); 
+    /* This simulates the row being pressed in on hover */
+}
+
+.ant-menu-item {
+  border-radius: 12px !important;
+  margin: 4px 8px !important;
+  width: calc(100% - 16px) !important;
+}
+
+.ant-menu-item-selected {
+  background: var(--clay-bg) !important; 
+  /* In dark mode this is dark, in light mode light. But 'selected' needs contrast? 
+     Let's use a subtle inset shadow instead of flat color to look 'pressed' */
+  box-shadow: var(--clay-shadow-inset) !important;
+  color: #1890ff !important;
+}
+/* Ensure the text inside selected menu is visible */
+.ant-menu-item-selected span, .ant-menu-item-selected a {
+    color: #1890ff !important;
+}
+
+/* 10. Dashboard Stat Cards */
+/* Attempt to target the specific cards shown in screenshot */
+.ant-statistic, .ant-card-body {
+    background: transparent !important; /* Let the card bg show through */
+}
+/* Fix for nested cards having double shadows */
+.ant-card .ant-card {
+    box-shadow: var(--clay-shadow-inset) !important; /* Inner cards should look inset/pressed */
+    background-color: var(--clay-bg) !important;
+    border: none !important;
+}
+
+/* 11. Toggle Buttons & Radio Groups (Date Picker) */
+.ant-radio-button-wrapper {
+    background: var(--clay-card-bg) !important;
+    border: 1px solid transparent !important;
+    box-shadow: var(--clay-shadow-out);
+    color: var(--clay-text-color) !important;
+    margin-right: 8px; /* Spacing between buttons */
+    border-radius: 20px !important; /* Pill shape */
+}
+.ant-radio-button-wrapper-checked {
+    box-shadow: var(--clay-shadow-inset) !important; /* Pressed in state */
+    color: #1890ff !important;
+}
+.ant-radio-button-wrapper:hover {
+    color: #1890ff !important;
+}
+/* Remove the vertical separator line often found in radio groups */
+.ant-radio-button-wrapper::before {
+    display: none !important; 
+}
+
+/* 13. Drawers (Slide-out panels) */
+.ant-drawer-content {
+    background-color: var(--clay-card-bg) !important;
+}
+.ant-drawer-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--clay-bg) !important;
+}
+.ant-drawer-title, .ant-drawer-close {
+    color: var(--clay-text-color) !important;
+}
+.ant-drawer-body {
+    color: var(--clay-text-color) !important;
+}
+
+/* 14. Checkboxes */
+.ant-checkbox-inner {
+    background-color: var(--clay-bg) !important;
+    border: 1px solid transparent !important;
+    border-radius: 6px !important;
+    box-shadow: var(--clay-shadow-inset) !important;
+    width: 20px !important;
+    height: 20px !important;
+}
+
+.ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #1890ff !important;
+    box-shadow: 
+        2px 2px 4px rgba(24, 144, 255, 0.4), 
+        -2px -2px 4px rgba(255, 255, 255, 0.2) !important;
+}
+
+.ant-checkbox-checked::after {
+    border: none !important;
+}
+
+.ant-checkbox-wrapper {
+    color: var(--clay-text-color) !important;
+    margin-bottom: 8px; /* Spacing for lists */
+    padding: 8px;
+    border-radius: 12px;
+    transition: background 0.3s;
+}
+.ant-checkbox-wrapper:hover {
+    background: var(--clay-bg); /* subtle hover effect */
+}
+
+

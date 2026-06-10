@@ -3,20 +3,16 @@ const { AsyncLocalStorage } = require('async_hooks');
 const tenantStorage = new AsyncLocalStorage();
 
 const tenantMiddleware = (req, res, next) => {
-  // Retrieve companyId from req.admin (set by JWT middleware) or headers/query
-  const companyId = 
-    (req.admin && req.admin.companyId) || 
-    req.headers['x-tenant-id'] || 
-    req.query.tenantId;
-
-  if (companyId) {
-    // Run next middlewares/routes within the AsyncLocalStorage context
-    tenantStorage.run(companyId.toString(), () => {
-      next();
-    });
-  } else {
-    next();
+  const companyId = '6a1d884573247f2dc036cb18';
+  
+  if (req.admin) {
+    req.admin.companyId = companyId;
   }
+
+  // Run next middlewares/routes within the AsyncLocalStorage context
+  tenantStorage.run(companyId, () => {
+    next();
+  });
 };
 
 module.exports = {

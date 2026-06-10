@@ -36,6 +36,7 @@ const Profile = lazy(() => import('@/pages/Profile'));
 
 
 const About = lazy(() => import('@/pages/About'));
+const AuditLog = lazy(() => import('@/pages/AuditLog'));
 
 const Labour = lazy(() => import('@/pages/Labour'));
 const Attendance = lazy(() => import('@/pages/Attendance'));
@@ -67,6 +68,7 @@ const Expense = lazy(() => import('@/pages/Expense'));
 const ExpenseCreate = lazy(() => import('@/pages/Expense/ExpenseCreate'));
 const VillaReports = lazy(() => import('@/pages/VillaReports'));
 const VillaReportDetail = lazy(() => import('@/pages/VillaReports/VillaReportDetail'));
+const Reports = lazy(() => import('@/pages/Reports'));
 
 let routes = {
   expense: [],
@@ -84,12 +86,20 @@ let routes = {
       element: <About />,
     },
     {
+      path: '/audit-logs',
+      element: <AuditLog />,
+    },
+    {
       path: '/',
       element: <Dashboard />,
     },
     {
       path: '/daily-summary',
       element: <DailyReport />,
+    },
+    {
+      path: '/reports',
+      element: <Reports />,
     },
     {
       path: '/villa-reports',

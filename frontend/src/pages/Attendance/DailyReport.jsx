@@ -368,6 +368,49 @@ const DailyReport = () => {
                                 </Col>
                             </Row>
                         </Card>
+
+                        <Card title="Daily Transactions Log" size="small" style={{ marginTop: 16 }}>
+                            <Table
+                                rowKey="key"
+                                columns={[
+                                    {
+                                        title: 'Type',
+                                        dataIndex: 'type',
+                                        key: 'type',
+                                        render: (type) => type === 'income' ? <Tag color="green">Income</Tag> : <Tag color="red">Expense</Tag>
+                                    },
+                                    {
+                                        title: 'Category',
+                                        dataIndex: 'category',
+                                        key: 'category',
+                                    },
+                                    {
+                                        title: 'Party / Source',
+                                        dataIndex: 'payee',
+                                        key: 'payee',
+                                    },
+                                    {
+                                        title: 'Description',
+                                        dataIndex: 'description',
+                                        key: 'description',
+                                    },
+                                    {
+                                        title: 'Amount',
+                                        dataIndex: 'amount',
+                                        key: 'amount',
+                                        render: (amount, record) => (
+                                            <span style={{ color: record.type === 'income' ? 'green' : 'red', fontWeight: 'bold' }}>
+                                                {record.type === 'income' ? '+' : '-'}{moneyFormatter({ amount })}
+                                            </span>
+                                        )
+                                    }
+                                ]}
+                                dataSource={(summary.items || []).map((item, idx) => ({ ...item, key: idx }))}
+                                pagination={false}
+                                size="small"
+                                scroll={{ x: 600 }}
+                            />
+                        </Card>
                     </>
                 ) : null}
             </Space>

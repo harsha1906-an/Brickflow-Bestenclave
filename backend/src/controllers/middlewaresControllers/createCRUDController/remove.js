@@ -4,6 +4,10 @@ const remove = async (Model, req, res) => {
     removed: true,
   };
   // Find the document by id and delete it
+  const oldDocument = await Model.findOne({
+    _id: req.params.id,
+  }).lean().exec();
+
   const result = await Model.findOneAndUpdate(
     {
       _id: req.params.id,
@@ -21,6 +25,18 @@ const remove = async (Model, req, res) => {
       message: 'No document found ',
     });
   } else {
+    const { logAuditAction } = require('../../../modules/AuditLogModule/auditLog.middleware');
+    logAuditAction({
+      req,
+      module: Model.modelName,
+      action: 'delete',
+      entityType: Model.modelName,
+      entityId: result._id,
+      metadata: {
+        old: oldDocument,
+      },
+    });
+
     return res.status(200).json({
       success: true,
       result,
