@@ -307,10 +307,11 @@ const LabourList = () => {
                       {(fields, { add, remove }) => (
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            {fields.map((field, index) => (
-                              <div key={field.key} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '12px' }}>
+                            {fields.map(({ key, name, ...restField }, index) => (
+                              <div key={key} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '12px' }}>
                                 <Form.Item
-                                  {...field}
+                                  {...restField}
+                                  name={name}
                                   label={`Stage ${index + 1}`}
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0, flex: 1 }}
