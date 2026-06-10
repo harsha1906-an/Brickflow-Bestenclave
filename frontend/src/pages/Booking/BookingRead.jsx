@@ -80,9 +80,6 @@ export default function BookingRead() {
                 whiteRef: '',
                 blackRef: '',
                 description: ''
-            });
-        } else {
-            form.resetFields();
         }
     }, [paymentModal.open, paymentModal.milestone]);
 
