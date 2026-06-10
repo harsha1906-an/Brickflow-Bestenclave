@@ -18,6 +18,7 @@ import RecentTable from './components/RecentTable';
 import InventoryAnalytics from './components/InventoryAnalytics';
 import VillaProgressList from './components/VillaProgressList';
 import VillaFinancialsList from './components/VillaFinancialsList';
+import VillaFinancialsChart from './components/VillaFinancialsChart';
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
@@ -30,6 +31,7 @@ export default function DashboardModule() {
   const money_format_settings = useSelector(selectMoneyFormat);
   const currentAdmin = useSelector(selectCurrentAdmin);
   const [showSettings, setShowSettings] = useState(false);
+  const [viewMode, setViewMode] = useState('list');
 
   // Default config if none exists
   const defaultConfig = {
@@ -326,17 +328,32 @@ export default function DashboardModule() {
           {!isEngineer && (
             <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 12 }} lg={{ span: 12 }}>
                {villasLoading ? (
-                <TableSkeleton />
-              ) : (
-                <div className="whiteBox shadow" style={{ minHeight: 458, maxHeight: 600, overflowY: 'auto' }}>
-                  <div className="pad20">
-                    <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
-                      Villa Expenses & Income
-                    </h3>
-                     <VillaFinancialsList villas={villasProgress} isLoading={villasLoading} />
-                  </div>
-                </div>
-              )}
+                 <TableSkeleton />
+               ) : (
+                 <div className="whiteBox shadow" style={{ minHeight: 458, maxHeight: 600, overflowY: 'auto' }}>
+                   <div className="pad20">
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                       <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                         Villa Expenses & Income
+                       </h3>
+                       <Radio.Group 
+                         value={viewMode} 
+                         onChange={(e) => setViewMode(e.target.value)} 
+                         size="small" 
+                         buttonStyle="solid"
+                       >
+                         <Radio.Button value="list">List</Radio.Button>
+                         <Radio.Button value="chart">Chart</Radio.Button>
+                       </Radio.Group>
+                     </div>
+                     {viewMode === 'list' ? (
+                       <VillaFinancialsList villas={villasProgress} isLoading={villasLoading} />
+                     ) : (
+                       <VillaFinancialsChart villas={villasProgress} isLoading={villasLoading} />
+                     )}
+                   </div>
+                 </div>
+               )}
             </Col>
           )}
 
