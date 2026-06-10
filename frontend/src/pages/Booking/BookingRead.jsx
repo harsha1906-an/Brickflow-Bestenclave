@@ -137,6 +137,31 @@ export default function BookingRead() {
         });
     };
 
+    useEffect(() => {
+        if (paymentModal.open && paymentModal.milestone) {
+            const ms = paymentModal.milestone;
+            const msPayments = getPaymentsForMilestone(ms);
+            const paidWhite = msPayments.filter(p => p.ledger === 'official').reduce((sum, p) => sum + (p.amount || 0), 0);
+            const paidBlack = msPayments.filter(p => p.ledger === 'internal').reduce((sum, p) => sum + (p.amount || 0), 0);
+            const pendingWhite = Math.max(0, (ms.accountableAmount || 0) - paidWhite);
+            const pendingBlack = Math.max(0, (ms.nonAccountableAmount || 0) - paidBlack);
+
+            form.setFieldsValue({
+                date: dayjs(),
+                whiteAmount: pendingWhite,
+                blackAmount: pendingBlack,
+                whitePaymentMode: 'Bank Transfer',
+                blackPaymentMode: 'Cash',
+                whiteRef: '',
+                blackRef: '',
+                description: ''
+            });
+        } else {
+            form.resetFields();
+        }
+    }, [paymentModal.open, paymentModal.milestone]);
+
+
     const paymentPlanColumns = [
         { title: translate('Milestone'), dataIndex: 'name', key: 'name' },
         { title: translate('Due Date'), dataIndex: 'dueDate', key: 'dueDate', render: (d) => d ? dayjs(d).format(dateFormat) : '-' },
