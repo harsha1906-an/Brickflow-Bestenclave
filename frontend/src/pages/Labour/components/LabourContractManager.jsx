@@ -8,6 +8,7 @@ import { request } from '@/request';
 import useLanguage from '@/locale/useLanguage';
 import SelectAsync from '@/components/SelectAsync';
 import storePersist from '@/redux/storePersist';
+import numberToWords from '@/utils/numberToWords';
 
 const { Text, Title } = Typography;
 
@@ -25,6 +26,13 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
     const [completingData, setCompletingData] = useState(null);
     const [completionForm] = Form.useForm();
     const [lastCreatedExpense, setLastCreatedExpense] = useState(null);
+
+    const contractTotalAmount = Form.useWatch('totalAmount', form);
+
+    const releaseAmount = Form.useWatch('amount', completionForm);
+    const releaseAdvance = Form.useWatch('advanceDeduction', completionForm);
+    const releasePenalty = Form.useWatch('penalty', completionForm);
+    const releaseNetAmount = Form.useWatch('netAmount', completionForm);
 
     const fetchContracts = async () => {
         if (!labour?._id) return;
@@ -383,7 +391,11 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
 
                             <Row gutter={16}>
                                 <Col span={8}>
-                                    <Form.Item name="totalAmount" label="Total Contract Value">
+                                    <Form.Item
+                                        name="totalAmount"
+                                        label="Total Contract Value"
+                                        extra={contractTotalAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(contractTotalAmount)}</div> : null}
+                                    >
                                         <InputNumber
                                             disabled
                                             style={{ width: '100%', fontWeight: 'bold' }}
@@ -423,16 +435,28 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                                                 </Col>
                                                 <Col span={6}>
                                                     <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'amount']}
+                                                        shouldUpdate={(prev, curr) => prev.milestones !== curr.milestones}
+                                                        style={{ marginBottom: 0 }}
                                                     >
-                                                        <InputNumber
-                                                            disabled
-                                                            prefix={currency_symbol}
-                                                            style={{ width: '100%' }}
-                                                            formatter={inputFormatter}
-                                                            parser={inputParser}
-                                                        />
+                                                        {({ getFieldValue }) => {
+                                                            const milestones = getFieldValue('milestones');
+                                                            const milestoneAmount = milestones && milestones[name] ? milestones[name].amount : 0;
+                                                            return (
+                                                                <Form.Item
+                                                                    {...restField}
+                                                                    name={[name, 'amount']}
+                                                                    help={milestoneAmount ? <span style={{ fontSize: '10px', color: '#888', fontStyle: 'italic' }}>{numberToWords(milestoneAmount)}</span> : null}
+                                                                >
+                                                                    <InputNumber
+                                                                        disabled
+                                                                        prefix={currency_symbol}
+                                                                        style={{ width: '100%' }}
+                                                                        formatter={inputFormatter}
+                                                                        parser={inputParser}
+                                                                    />
+                                                                </Form.Item>
+                                                            );
+                                                        }}
                                                     </Form.Item>
                                                 </Col>
                                                 <Col span={2}>
@@ -574,7 +598,11 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                             completionForm.setFieldsValue({ netAmount: amount - advance - penalty });
                         }}
                     >
-                        <Form.Item name="amount" label="Milestone Base Amount">
+                        <Form.Item
+                            name="amount"
+                            label="Milestone Base Amount"
+                            extra={releaseAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAmount)}</div> : null}
+                        >
                             <InputNumber
                                 disabled
                                 style={{ width: '100%' }}
@@ -585,7 +613,11 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                         </Form.Item>
                         <Row gutter={16}>
                             <Col span={12}>
-                                <Form.Item name="advanceDeduction" label="Advance Deduction">
+                                <Form.Item
+                                    name="advanceDeduction"
+                                    label="Advance Deduction"
+                                    extra={releaseAdvance > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseAdvance)}</div> : null}
+                                >
                                     <InputNumber
                                         style={{ width: '100%' }}
                                         min={0}
@@ -596,7 +628,11 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                                 </Form.Item>
                             </Col>
                             <Col span={12}>
-                                <Form.Item name="penalty" label="Penalty">
+                                <Form.Item
+                                    name="penalty"
+                                    label="Penalty"
+                                    extra={releasePenalty > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releasePenalty)}</div> : null}
+                                >
                                     <InputNumber
                                         style={{ width: '100%' }}
                                         min={0}
@@ -607,7 +643,11 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                                 </Form.Item>
                             </Col>
                         </Row>
-                        <Form.Item name="netAmount" label="Net Released Amount">
+                        <Form.Item
+                            name="netAmount"
+                            label="Net Released Amount"
+                            extra={releaseNetAmount > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(releaseNetAmount)}</div> : null}
+                        >
                             <InputNumber
                                 disabled
                                 style={{ width: '100%', fontWeight: 'bold' }}

@@ -8,6 +8,7 @@ import { useMoney } from '@/settings';
 import dayjs from 'dayjs';
 import storePersist from '@/redux/storePersist';
 import { useAppContext } from '@/context/appContext';
+import numberToWords from '@/utils/numberToWords';
 
 const PettyCashList = () => {
     const { message } = App.useApp();
@@ -20,6 +21,8 @@ const PettyCashList = () => {
     const [form] = Form.useForm();
     const translate = useLanguage();
     const { role } = useUserRole();
+
+    const amountWatch = Form.useWatch('amount', form);
     const [reportRange, setReportRange] = useState([dayjs(), dayjs()]);
     const [reportDate, setReportDate] = useState(dayjs());
 
@@ -169,16 +172,31 @@ const PettyCashList = () => {
                 <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Total Cash Received" value={summary.totalInward} precision={2} prefix={<WalletOutlined />} valueStyle={{ color: '#3f8600' }} />
+                        {summary.totalInward > 0 && (
+                            <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+                                {numberToWords(summary.totalInward)}
+                            </div>
+                        )}
                     </Card>
                 </Col>
                 <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Total Expenses" value={summary.totalOutward} precision={2} prefix={<MinusOutlined />} valueStyle={{ color: '#cf1322' }} />
+                        {summary.totalOutward > 0 && (
+                            <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+                                {numberToWords(summary.totalOutward)}
+                            </div>
+                        )}
                     </Card>
                 </Col>
                 <Col xs={24} sm={8}>
                     <Card bordered={false} className="summary-card">
                         <Statistic title="Current Balance" value={summary.balance} precision={2} prefix={<WalletOutlined />} valueStyle={{ color: summary.balance < 0 ? '#cf1322' : '#1890ff' }} />
+                        {summary.balance !== 0 && (
+                            <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+                                {summary.balance < 0 ? `Minus ${numberToWords(Math.abs(summary.balance))}` : numberToWords(summary.balance)}
+                            </div>
+                        )}
                     </Card>
                 </Col>
             </Row>
@@ -265,7 +283,12 @@ const PettyCashList = () => {
                     <Form.Item name="name" label={modalType === 'inward' ? 'Reference / Title' : 'Expense Description'} rules={[{ required: true, message: 'Please enter a name' }]}>
                         <Input placeholder={modalType === 'inward' ? 'e.g. Weekly Cash for Site' : 'e.g. Material Purchase'} />
                     </Form.Item>
-                    <Form.Item name="amount" label="Amount" rules={[{ required: true, message: 'Please enter amount' }]}>
+                    <Form.Item
+                        name="amount"
+                        label="Amount"
+                        rules={[{ required: true, message: 'Please enter amount' }]}
+                        extra={amountWatch > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(amountWatch)}</div> : null}
+                    >
                         <InputNumber
                             style={{ width: '100%' }}
                             min={1}

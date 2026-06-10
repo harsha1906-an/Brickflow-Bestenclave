@@ -10,6 +10,7 @@ import storePersist from '@/redux/storePersist';
 import { useMoney, useDate } from '@/settings';
 import dayjs from 'dayjs';
 import { PageHeader } from '@ant-design/pro-layout';
+import numberToWords from '@/utils/numberToWords';
 
 export default function BookingRead() {
     const { message } = App.useApp();
@@ -25,6 +26,8 @@ export default function BookingRead() {
     const [paymentModal, setPaymentModal] = useState({ open: false, milestone: null });
     const [isPartialPayment, setIsPartialPayment] = useState(false);
     const [form] = Form.useForm(); // Needed for PaymentModal
+    const whiteAmountWatch = Form.useWatch('whiteAmount', form);
+    const blackAmountWatch = Form.useWatch('blackAmount', form);
 
 
 
@@ -299,22 +302,31 @@ export default function BookingRead() {
 
                     <Card title="Financials" bordered={false} style={{ marginTop: 16 }}>
                         <Row gutter={48}>
-                            <Col>
+                            <Col span={8}>
                                 <Statistic title="Total Amount" value={moneyFormatter({ amount: booking.totalAmount })} />
+                                <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>
+                                    {numberToWords(booking.totalAmount)}
+                                </div>
                             </Col>
-                            <Col>
+                            <Col span={8}>
                                 <Statistic
                                     title="Paid Amount"
                                     value={moneyFormatter({ amount: payments.reduce((acc, curr) => acc + (curr.amount || 0), 0) })}
                                     valueStyle={{ color: '#3f8600' }}
                                 />
+                                <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>
+                                    {numberToWords(payments.reduce((acc, curr) => acc + (curr.amount || 0), 0))}
+                                </div>
                             </Col>
-                            <Col>
+                            <Col span={8}>
                                 <Statistic
                                     title="Pending Amount"
                                     value={moneyFormatter({ amount: booking.totalAmount - payments.reduce((acc, curr) => acc + (curr.amount || 0), 0) })}
                                     valueStyle={{ color: '#cf1322' }}
                                 />
+                                <div style={{ fontSize: '11px', color: '#888', marginTop: '4px', fontStyle: 'italic' }}>
+                                    {numberToWords(Math.max(0, booking.totalAmount - payments.reduce((acc, curr) => acc + (curr.amount || 0), 0)))}
+                                </div>
                             </Col>
                         </Row>
                     </Card>
@@ -438,7 +450,11 @@ export default function BookingRead() {
                                         <div style={{ marginBottom: 15, fontSize: '13px' }}>
                                             Pending: <strong style={{ color: '#1890ff' }}>{moneyFormatter({ amount: pendingWhite })}</strong>
                                         </div>
-                                        <Form.Item name="whiteAmount" label="Paying Amount">
+                                        <Form.Item
+                                            name="whiteAmount"
+                                            label="Paying Amount"
+                                            extra={whiteAmountWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(whiteAmountWatch)}</div> : null}
+                                        >
                                             <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
                                         </Form.Item>
                                         <Form.Item name="whitePaymentMode" label="Payment Mode">
@@ -479,9 +495,14 @@ export default function BookingRead() {
                                         <div style={{ marginBottom: 15, fontSize: '13px' }}>
                                             Pending: <strong style={{ color: '#ff4d4f' }}>{moneyFormatter({ amount: pendingBlack })}</strong>
                                         </div>
-                                        <Form.Item name="blackAmount" label="Paying Amount">
+                                        <Form.Item
+                                            name="blackAmount"
+                                            label="Paying Amount"
+                                            extra={blackAmountWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(blackAmountWatch)}</div> : null}
+                                        >
                                             <InputNumber style={{ width: '100%' }} min={0} disabled={!isPartialPayment} />
                                         </Form.Item>
+
                                         <Form.Item name="blackPaymentMode" label="Payment Mode">
                                             <Select>
                                                 <Select.Option value="Cash">Cash</Select.Option>

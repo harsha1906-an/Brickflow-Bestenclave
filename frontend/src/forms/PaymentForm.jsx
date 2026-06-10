@@ -5,8 +5,8 @@ import { DatePicker } from 'antd';
 import SelectAsync from '@/components/SelectAsync';
 import { useMoney, useDate } from '@/settings';
 import { request } from '@/request';
-
 import useLanguage from '@/locale/useLanguage';
+import numberToWords from '@/utils/numberToWords';
 
 function PropertyBalance() {
   const form = Form.useFormInstance();
@@ -240,7 +240,12 @@ export default function PaymentForm({ maxAmount = null, isUpdateForm = false }) 
         }
       </div >
 
-      <Form.Item label={translate('amount')} name="amount" rules={[{ required: true }]}>
+      <Form.Item
+        label={translate('amount')}
+        name="amount"
+        rules={[{ required: true }]}
+        extra={amount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(amount)}</div> : null}
+      >
         <InputNumber
           className="moneyInput"
           min={0}

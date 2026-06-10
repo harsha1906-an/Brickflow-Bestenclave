@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Tag, Switch, Select, Form, Input, App, Space, Tabs, Divider, Descriptions } from 'antd';
 import useMoney from '@/settings/useMoney';
-import { PlusOutlined, EditOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, EyeOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 import { useUserRole } from '@/hooks/useUserRole';
 import { request } from '@/request';
 import { useAppContext } from '@/context/appContext';
 import LabourContractManager from './components/LabourContractManager';
+import numberToWords from '@/utils/numberToWords';
 
 const skillOptions = [
   { value: 'mason', label: 'Mason' },
@@ -32,6 +33,9 @@ const LabourList = () => {
   const { role } = useUserRole();
   const { state } = useAppContext();
   const companyId = state.currentCompany;
+
+  const dailyWageWatch = Form.useWatch('dailyWage', form);
+  const monthlySalaryWatch = Form.useWatch('monthlySalary', form);
 
   const fetchLabour = async () => {
     if (!companyId) return;
@@ -268,7 +272,12 @@ const LabourList = () => {
               const type = getFieldValue('employmentType');
               if (type === 'daily') {
                 return (
-                  <Form.Item name="dailyWage" label="Daily Wage Rate" rules={[{ required: true }]}>
+                  <Form.Item
+                    name="dailyWage"
+                    label="Daily Wage Rate"
+                    rules={[{ required: true }]}
+                    extra={dailyWageWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(dailyWageWatch)}</div> : null}
+                  >
                     <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
                   </Form.Item>
                 );
@@ -276,7 +285,12 @@ const LabourList = () => {
               if (type === 'monthly') {
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="monthlySalary" label="Monthly Salary" rules={[{ required: true }]}>
+                    <Form.Item
+                      name="monthlySalary"
+                      label="Monthly Salary"
+                      rules={[{ required: true }]}
+                      extra={monthlySalaryWatch > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(monthlySalaryWatch)}</div> : null}
+                    >
                       <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
                     </Form.Item>
                     <Form.Item name="paymentDay" label="Payment Day (of month)" rules={[{ required: true }]}>
@@ -288,20 +302,48 @@ const LabourList = () => {
               if (type === 'contract') {
                 return (
                   <>
-                    <Divider orientation="left">Milestone Plan (5 Stages)</Divider>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <Form.Item
-                          key={i}
-                          name={['milestonePlan', i]}
-                          label={`Stage ${i + 1}`}
-                          rules={[{ required: true, message: 'Required' }]}
-                          style={{ marginBottom: '12px' }}
-                        >
-                          <Input disabled={role === 'ACCOUNTANT'} placeholder={`Milestone ${i + 1}`} />
-                        </Form.Item>
-                      ))}
-                    </div>
+                    <Divider orientation="left">Milestone Plan</Divider>
+                    <Form.List name="milestonePlan">
+                      {(fields, { add, remove }) => (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {fields.map((field, index) => (
+                              <div key={field.key} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginBottom: '12px' }}>
+                                <Form.Item
+                                  {...field}
+                                  label={`Stage ${index + 1}`}
+                                  rules={[{ required: true, message: 'Required' }]}
+                                  style={{ marginBottom: 0, flex: 1 }}
+                                >
+                                  <Input disabled={role === 'ACCOUNTANT'} placeholder={`Milestone ${index + 1}`} />
+                                </Form.Item>
+                                {fields.length > 1 && (
+                                  <Button
+                                    type="text"
+                                    danger
+                                    disabled={role === 'ACCOUNTANT'}
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => remove(field.name)}
+                                    style={{ marginBottom: '4px' }}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <Form.Item style={{ marginTop: '12px' }}>
+                            <Button
+                              type="dashed"
+                              onClick={() => add()}
+                              disabled={role === 'ACCOUNTANT'}
+                              block
+                              icon={<PlusOutlined />}
+                            >
+                              Add Stage
+                            </Button>
+                          </Form.Item>
+                        </>
+                      )}
+                    </Form.List>
                   </>
                 );
               }
@@ -348,13 +390,23 @@ const LabourList = () => {
             </Descriptions.Item>
             {viewingLabour.employmentType === 'daily' && (
               <Descriptions.Item label="Daily Wage">
-                {moneyFormatter({ amount: viewingLabour.dailyWage })}
+                <div>{moneyFormatter({ amount: viewingLabour.dailyWage })}</div>
+                {viewingLabour.dailyWage > 0 && (
+                  <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+                    {numberToWords(viewingLabour.dailyWage)}
+                  </div>
+                )}
               </Descriptions.Item>
             )}
             {viewingLabour.employmentType === 'monthly' && (
               <>
                 <Descriptions.Item label="Monthly Salary">
-                  {moneyFormatter({ amount: viewingLabour.monthlySalary })}
+                  <div>{moneyFormatter({ amount: viewingLabour.monthlySalary })}</div>
+                  {viewingLabour.monthlySalary > 0 && (
+                    <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>
+                      {numberToWords(viewingLabour.monthlySalary)}
+                    </div>
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Payment Day">
                   Day {viewingLabour.paymentDay}

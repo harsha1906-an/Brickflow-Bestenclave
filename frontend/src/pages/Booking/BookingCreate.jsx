@@ -604,62 +604,72 @@ export default function BookingCreate() {
                                             </Col>
                                         </Row>
                                         <Row gutter={16}>
-                                            <Col span={8}>
-                                                <Form.Item
-                                                    shouldUpdate={(prev, curr) => prev.paymentPlan !== curr.paymentPlan}
-                                                >
-                                                    {({ getFieldValue, setFieldsValue }) => (
-                                                        <Form.Item
-                                                            {...restField}
-                                                            name={[name, 'accountableAmount']}
-                                                            label="White Amount"
-                                                            initialValue={0}
-                                                        >
-                                                            <InputNumber
-                                                                style={{ width: '100%' }}
-                                                                formatter={inputFormatter}
-                                                                parser={inputParser}
-                                                                prefix={currency_symbol}
-                                                                onChange={(value) => {
-                                                                    const paymentPlan = getFieldValue('paymentPlan');
-                                                                    const black = paymentPlan[name]?.nonAccountableAmount || 0;
-                                                                    const updatedPlan = [...paymentPlan];
-                                                                    updatedPlan[name].amount = (value || 0) + black;
-                                                                    setFieldsValue({ paymentPlan: updatedPlan });
-                                                                }}
-                                                            />
-                                                        </Form.Item>
-                                                    )}
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={8}>
-                                                <Form.Item
-                                                    shouldUpdate={(prev, curr) => prev.paymentPlan !== curr.paymentPlan}
-                                                >
-                                                    {({ getFieldValue, setFieldsValue }) => (
-                                                        <Form.Item
-                                                            {...restField}
-                                                            name={[name, 'nonAccountableAmount']}
-                                                            label="Black Amount"
-                                                            initialValue={0}
-                                                        >
-                                                            <InputNumber
-                                                                style={{ width: '100%' }}
-                                                                formatter={inputFormatter}
-                                                                parser={inputParser}
-                                                                prefix={currency_symbol}
-                                                                onChange={(value) => {
-                                                                    const paymentPlan = getFieldValue('paymentPlan');
-                                                                    const white = paymentPlan[name]?.accountableAmount || 0;
-                                                                    const updatedPlan = [...paymentPlan];
-                                                                    updatedPlan[name].amount = white + (value || 0);
-                                                                    setFieldsValue({ paymentPlan: updatedPlan });
-                                                                }}
-                                                            />
-                                                        </Form.Item>
-                                                    )}
-                                                </Form.Item>
-                                            </Col>
+                                             <Col span={8}>
+                                                 <Form.Item
+                                                     shouldUpdate={(prev, curr) => prev.paymentPlan !== curr.paymentPlan}
+                                                 >
+                                                     {({ getFieldValue, setFieldsValue }) => {
+                                                         const paymentPlan = getFieldValue('paymentPlan');
+                                                         const white = paymentPlan && paymentPlan[name] ? paymentPlan[name].accountableAmount : 0;
+                                                         return (
+                                                             <Form.Item
+                                                                 {...restField}
+                                                                 name={[name, 'accountableAmount']}
+                                                                 label="White Amount"
+                                                                 initialValue={0}
+                                                                 help={white ? <span style={{ fontSize: '10px', color: '#aaa' }}>{numberToWords(white)}</span> : null}
+                                                             >
+                                                                 <InputNumber
+                                                                     style={{ width: '100%' }}
+                                                                     formatter={inputFormatter}
+                                                                     parser={inputParser}
+                                                                     prefix={currency_symbol}
+                                                                     onChange={(value) => {
+                                                                         const paymentPlan = getFieldValue('paymentPlan');
+                                                                         const black = paymentPlan[name]?.nonAccountableAmount || 0;
+                                                                         const updatedPlan = [...paymentPlan];
+                                                                         updatedPlan[name].amount = (value || 0) + black;
+                                                                         setFieldsValue({ paymentPlan: updatedPlan });
+                                                                     }}
+                                                                 />
+                                                             </Form.Item>
+                                                         );
+                                                     }}
+                                                 </Form.Item>
+                                             </Col>
+                                             <Col span={8}>
+                                                 <Form.Item
+                                                     shouldUpdate={(prev, curr) => prev.paymentPlan !== curr.paymentPlan}
+                                                 >
+                                                     {({ getFieldValue, setFieldsValue }) => {
+                                                         const paymentPlan = getFieldValue('paymentPlan');
+                                                         const black = paymentPlan && paymentPlan[name] ? paymentPlan[name].nonAccountableAmount : 0;
+                                                         return (
+                                                             <Form.Item
+                                                                 {...restField}
+                                                                 name={[name, 'nonAccountableAmount']}
+                                                                 label="Black Amount"
+                                                                 initialValue={0}
+                                                                 help={black ? <span style={{ fontSize: '10px', color: '#aaa' }}>{numberToWords(black)}</span> : null}
+                                                             >
+                                                                 <InputNumber
+                                                                     style={{ width: '100%' }}
+                                                                     formatter={inputFormatter}
+                                                                     parser={inputParser}
+                                                                     prefix={currency_symbol}
+                                                                     onChange={(value) => {
+                                                                         const paymentPlan = getFieldValue('paymentPlan');
+                                                                         const white = paymentPlan[name]?.accountableAmount || 0;
+                                                                         const updatedPlan = [...paymentPlan];
+                                                                         updatedPlan[name].amount = white + (value || 0);
+                                                                         setFieldsValue({ paymentPlan: updatedPlan });
+                                                                     }}
+                                                                 />
+                                                             </Form.Item>
+                                                         );
+                                                     }}
+                                                 </Form.Item>
+                                             </Col>
                                             <Col span={8}>
                                                 <Form.Item
                                                     shouldUpdate={(prev, curr) => prev.paymentPlan !== curr.paymentPlan}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Divider } from 'antd';
 
 import { Button, Row, Col, Descriptions, Statistic, Tag, Form } from 'antd';
+import numberToWords from '@/utils/numberToWords';
 import { PageHeader } from '@ant-design/pro-layout';
 import {
   EditOutlined,
@@ -234,35 +235,49 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
         }}
       >
         {isTransaction && (
-          <Row>
-            <Statistic title="Status" value={itemStatus} />
-            <Statistic
-              title={translate('SubTotal')}
-              value={moneyFormatter({
-                amount: currentErp?.subTotal || 0,
-                currency_code: currentErp?.currency,
-              })}
-              style={{
-                margin: '0 32px',
-              }}
-            />
-            <Statistic
-              title={translate('Total')}
-              value={moneyFormatter({ amount: currentErp?.total || 0, currency_code: currentErp?.currency })}
-              style={{
-                margin: '0 32px',
-              }}
-            />
-            <Statistic
-              title={translate('Paid')}
-              value={moneyFormatter({
-                amount: currentErp?.credit || 0,
-                currency_code: currentErp?.currency,
-              })}
-              style={{
-                margin: '0 32px',
-              }}
-            />
+          <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 10 }}>
+            <Col>
+              <Statistic title="Status" value={itemStatus} />
+            </Col>
+            <Col style={{ marginLeft: 32 }}>
+              <Statistic
+                title={translate('SubTotal')}
+                value={moneyFormatter({
+                  amount: currentErp?.subTotal || 0,
+                  currency_code: currentErp?.currency,
+                })}
+              />
+              {currentErp?.subTotal > 0 && (
+                <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '2px' }}>
+                  {numberToWords(currentErp.subTotal)}
+                </div>
+              )}
+            </Col>
+            <Col style={{ marginLeft: 32 }}>
+              <Statistic
+                title={translate('Total')}
+                value={moneyFormatter({ amount: currentErp?.total || 0, currency_code: currentErp?.currency })}
+              />
+              {currentErp?.total > 0 && (
+                <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '2px' }}>
+                  {numberToWords(currentErp.total)}
+                </div>
+              )}
+            </Col>
+            <Col style={{ marginLeft: 32 }}>
+              <Statistic
+                title={translate('Paid')}
+                value={moneyFormatter({
+                  amount: currentErp?.credit || 0,
+                  currency_code: currentErp?.currency,
+                })}
+              />
+              {currentErp?.credit > 0 && (
+                <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '2px' }}>
+                  {numberToWords(currentErp.credit)}
+                </div>
+              )}
+            </Col>
           </Row>
         )}
       </PageHeader>
@@ -366,6 +381,13 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
                   {moneyFormatter({ amount: currentErp?.total || 0, currency_code: currentErp?.currency })}
                 </p>
               </Col>
+              {currentErp?.total > 0 && (
+                <Col span={24} style={{ marginTop: '8px' }}>
+                  <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', textAlign: 'right' }}>
+                    {numberToWords(currentErp.total)}
+                  </div>
+                </Col>
+              )}
             </Row>
           </div>
         </>
