@@ -21,17 +21,16 @@ html
       }
       .container {
         width: 100%;
-        height: 138mm;
-        padding: 10pt 20pt;
+        height: 142mm;
+        padding: 5pt 20pt;
         position: relative;
         box-sizing: border-box;
-        overflow: hidden;
       }
       .brand-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 2pt;
+        margin-bottom: 0pt;
       }
       .logo-box {
         width: 80pt;
@@ -60,7 +59,7 @@ html
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-top: 2pt;
+        margin-top: 0pt;
       }
       .voucher-label {
         color: #f7941d;
@@ -83,10 +82,11 @@ html
       }
 
       .main-form {
-        margin-top: 6pt;
+        margin-top: 4pt;
         width: 100%;
         border: 1.5pt solid #f7941d;
         border-collapse: collapse;
+        table-layout: fixed;
       }
       .main-form td {
         border: 1pt solid #f7941d;
@@ -111,18 +111,18 @@ html
       }
 
       .footer-grid {
-        margin-top: 6pt;
+        margin-top: 4pt;
         width: 100%;
         border: 1pt solid #f7941d;
         border-collapse: collapse;
       }
       .footer-grid td {
         border: 1pt solid #f7941d;
-        padding: 3pt 10pt;
-        font-size: 9pt;
+        padding: 2pt 10pt;
+        font-size: 8.5pt;
       }
       .sig-box {
-        height: 60pt;
+        height: 45pt;
         vertical-align: bottom !important;
         text-align: center;
         width: 30%;
@@ -155,8 +155,8 @@ html
         .company-title
           h1 #{settings.construction_company_name || 'BEST CONSTRUCTIONS'}
           p #{settings.construction_address || 'Tamil Nadu, India'}
-          if settings.construction_gstin
-            p GSTIN: #{settings.construction_gstin}
+          if settings.company_gstin || settings.construction_gstin
+            p GSTIN: #{settings.company_gstin || settings.construction_gstin}
           p Cell: #{settings.company_phone || '99524 52139, 73391 11784'}
       
       .voucher-title-row
@@ -170,11 +170,18 @@ html
             td #{model.date ? moment(model.date).format(dateFormat) : '-'}
           tr
             td.meta-label Rs.
-            td(style="font-weight:bold; font-size:11pt") #{moneyFormatter({amount: model.totalAmount || model.amount || 0})}
+            - let pen = model.penalty || 0;
+            - let adv = model.advance || 0;
+            - let amt = model.amount || 0;
+            - let finalCash = amt - adv;
+            td(style="font-weight:bold; font-size:11pt") #{moneyFormatter({amount: finalCash})}
 
       table.main-form
+        colgroup
+          col(style="width: 75%")
+          col(style="width: 25%")
         tr
-          td(colspan="3")
+          td(colspan="2")
             .field-row
               .field-label Paid to
               .field-value
@@ -185,96 +192,91 @@ html
                 else
                   | #{model.description || 'N/A'}
         tr
-          td(colspan="3")
+          td(colspan="2")
             .field-row
               .field-label Debit
               .field-value(style="text-transform: uppercase; letter-spacing: 1px;") #{(model.recipientType || 'EXPENSE')} ACCOUNT
         - 
           let penalty = model.penalty || 0;
           let advance = model.advance || 0;
-          let hasDeductions = penalty > 0 || advance > 0;
+          let amount = model.amount || 0; 
           let taxAmount = model.taxAmount || 0;
-          let total = model.totalAmount || model.amount || 0;
-          let amount = model.amount || 0;
+          let grossAmount = amount + penalty; 
+          let netAmount = amount - advance;
+          let hasDeductions = penalty > 0 || advance > 0;
           
         if hasDeductions || taxAmount > 0
           tr(style="height: 30pt")
-            td(style="width: 70%; vertical-align: top;")
+            td(style="vertical-align: top; border-bottom: none")
               .field-label Particulars:
-              div(style="margin-top: 5pt; padding-left: 20pt;") #{model.description || '-'}
-            td(style="width: 15%; text-align: center; font-weight: bold; border-bottom: none") 
-            td(style="width: 15%; text-align: center; font-weight: bold; border-bottom: none") 
+              div(style="margin-top: 2pt; padding-left: 10pt; font-size: 9pt") #{model.description || '-'}
+            td(style="border-bottom: none") 
           
           tr
-            td(style="text-align: right; padding-right: 10pt;") Amount
-            td(style="text-align: center;") #{moneyFormatter({amount: amount})}
-            td(style="text-align: center;")
+            td(style="text-align: right; padding-right: 10pt; font-size: 9pt") Full Payment Value (Gross)
+            td(style="text-align: center;") #{moneyFormatter({amount: grossAmount})}
 
           if taxAmount > 0
             tr
-              td(style="text-align: right; padding-right: 10pt; font-style: italic") Add: #{model.taxType || 'GST'}
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Add: #{model.taxType || 'GST'}
               td(style="text-align: center;") #{moneyFormatter({amount: taxAmount})}
-              td(style="text-align: center;")
 
           if penalty > 0
             tr
-              td(style="text-align: right; padding-right: 10pt; font-style: italic") Less: Penalty
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Less: Penalty
               td(style="text-align: center;") #{moneyFormatter({amount: penalty})}
-              td(style="text-align: center;")
           
           if advance > 0
             tr
-              td(style="text-align: right; padding-right: 10pt; font-style: italic") Less: Advance Deduction
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Less: Advance Deduction
               td(style="text-align: center;") #{moneyFormatter({amount: advance})}
-              td(style="text-align: center;")
           
+          tr
+            td(style="text-align: right; padding-right: 10pt; font-weight: bold") Net Amount Paid
+            td(style="text-align: center; font-weight: bold") #{moneyFormatter({amount: netAmount})}
+
           tr.rupees-row
-            td(colspan="1")
+            td
               .field-row
-                .field-label Rupees
-                .field-value(style="font-style: italic;") #{model.inWords || '-'} Only
-            td(colspan="2" style="background: #f0f0f0; text-align: center; font-weight: bold;")
-              div(style="display: flex; justify-content: space-around;")
-                span Total
-                span #{moneyFormatter({amount: total})}
+                .field-label(style="min-width: 45pt") Rupees
+                .field-value(style="font-style: italic; font-size: 9pt") #{model.inWords || '-'} Only
+            td(style="background: #f0f0f0; text-align: center; font-weight: bold;")
+              div(style="font-size: 8pt") Total Value
+              div #{moneyFormatter({amount: grossAmount})}
 
         else
-          tr(style="height: 60pt")
-            td(style="width: 70%; vertical-align: top;")
+          tr(style="height: 50pt")
+            td(style="vertical-align: top;")
               .field-label Particulars:
               div(style="margin-top: 5pt; padding-left: 20pt;") #{model.description || '-'}
-            td(style="width: 15%; text-align: center; font-weight: bold;") 
-              div(style="border-bottom: 1px solid #f7941d; margin-bottom: 5pt; padding-bottom: 2pt") Rs.
-              div #{total ? Math.floor(total).toLocaleString('en-IN') : '0'}
-            td(style="width: 15%; text-align: center; font-weight: bold;") 
-              div(style="border-bottom: 1px solid #f7941d; margin-bottom: 5pt; padding-bottom: 2pt") P.
-              div 00
+            td(style="text-align: center; font-weight: bold;") 
+              div(style="border-bottom: 1px solid #f7941d; margin-bottom: 5pt; padding-bottom: 2pt") Amount
+              div #{moneyFormatter({amount: grossAmount})}
           tr.rupees-row
-            td(colspan="1")
+            td
               .field-row
-                .field-label Rupees
-                .field-value(style="font-style: italic;") #{model.inWords || '-'} Only
-            td(colspan="2" style="background: #f0f0f0; text-align: center; font-weight: bold;")
-              div(style="display: flex; justify-content: space-around;")
-                span Total
-                span #{moneyFormatter({amount: total})}
+                .field-label(style="min-width: 45pt") Rupees
+                .field-value(style="font-style: italic; font-size: 9pt") #{model.inWords || '-'} Only
+            td(style="background: #f0f0f0; text-align: center; font-weight: bold;")
+              div(style="font-size: 8pt") Total Value
+              div #{moneyFormatter({amount: grossAmount})}
 
       table.footer-grid
         tr
           td(style="width: 35%")
             div(style="margin-bottom: 2pt") Authorised by:
-            div(style="height: 15pt")
+            div(style="height: 10pt")
             div(style="border-top: 1px solid #000; padding-top: 2pt") Passed by:
-          td(rowspan="2").sig-box
+          td.sig-box
             div(style="border-top: 1px solid #000; width: 80%; margin: 0 auto 3pt;")
             | Receiver's Signature
-          td(rowspan="2" style="width: 35%; vertical-align: top;")
+          td(style="width: 35%; vertical-align: top;")
             .payment-info(style="font-size: 8pt")
               div Paid by 
                 b(style="text-transform:uppercase; margin-left: 5pt;") #{model.paymentMode || 'Cash'}
                 |  / Cheque drawn on 
-              div(style="margin-top: 4pt") Cheque No. ....................................................
-              div(style="margin-top: 4pt") Date. .............................................................
+              div(style="margin-top: 2pt") Cheque No. ........................................
+              div(style="margin-top: 2pt") Date. .................................................
 
 
 

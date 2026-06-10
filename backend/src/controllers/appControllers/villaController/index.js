@@ -145,19 +145,28 @@ const summary = async (req, res) => {
 const progressSummary = async (req, res) => {
     try {
         const mongoose = require('mongoose');
-        const { companyId } = req.query;
+        const companyId = req.params.companyId || req.query.companyId;
+
+        console.log('\n=== BACKEND PROGRESS SUMMARY ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Path:', req.originalUrl);
+        console.log('Req Params:', req.params);
+        console.log('Resolved CompanyId:', companyId);
 
         if (!companyId) {
+            console.error('ERROR: No companyId found in params or query');
             return res.status(400).json({
                 success: false,
                 message: 'Company ID is required'
             });
         }
 
-        console.log('\n=== BACKEND PROGRESS SUMMARY ===');
-        console.log('CompanyId received:', companyId);
+        const role = req.admin?.role || 'engineer';
+        const isFinancialAllowed = ['owner', 'manager', 'accountant'].includes(role);
 
         const LabourContract = mongoose.model('LabourContract');
+        const Payment = mongoose.model('Payment');
+        const Expense = mongoose.model('Expense');
 
         // Get all villas for the company
         console.log('Querying villas...');
@@ -180,6 +189,18 @@ const progressSummary = async (req, res) => {
 
             if (!contracts || contracts.length === 0) {
                 // No contracts = Not Started
+                
+                // Still calculate generic financials if any and allowed
+                let totalIncome = 0;
+                let totalExpense = 0;
+                if (isFinancialAllowed) {
+                    const payments = await Payment.find({ villa: villa._id, removed: false });
+                    totalIncome = payments.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+                    const expenses = await Expense.find({ villa: villa._id, removed: false });
+                    totalExpense = expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+                }
+
                 return {
                     _id: villa._id,
                     name: villa.name,
@@ -190,7 +211,9 @@ const progressSummary = async (req, res) => {
                     lastUpdated: null,
                     totalContracts: 0,
                     completedMilestones: 0,
-                    totalMilestones: 0
+                    totalMilestones: 0,
+                    income: totalIncome,
+                    expense: totalExpense
                 };
             }
 
@@ -237,6 +260,23 @@ const progressSummary = async (req, res) => {
                 currentStage = 'finishing'; // Completed
             }
 
+            // Calculate Income and Expense only if allowed
+            let totalIncome = 0;
+            let totalExpense = 0;
+            if (isFinancialAllowed) {
+                const payments = await Payment.find({
+                    villa: villa._id,
+                    removed: false
+                });
+                totalIncome = payments.reduce((sum, item) => sum + (item.amount || 0), 0);
+
+                const expenses = await Expense.find({
+                    villa: villa._id,
+                    removed: false
+                });
+                totalExpense = expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+            }
+
             return {
                 _id: villa._id,
                 name: villa.name,
@@ -247,7 +287,9 @@ const progressSummary = async (req, res) => {
                 lastUpdated: lastCompletionDate,
                 totalContracts: contracts.length,
                 completedMilestones: completedMilestones,
-                totalMilestones: totalMilestones
+                totalMilestones: totalMilestones,
+                income: totalIncome,
+                expense: totalExpense
             };
         }));
 

@@ -41,7 +41,10 @@ html
             img.logo(src=logo)
           else
             div(style="width: 120px; height: 50px; background: #eee; text-align: center; line-height: 50px;") LOGO
-          h1.report-title Petty Cash Book
+          div
+            h1.report-title Petty Cash Book
+            if settings.company_gstin
+              p(style="text-align: right; margin: 5px 0 0 0;") GSTIN: #{settings.company_gstin}
     
         .info-section
           .info-box

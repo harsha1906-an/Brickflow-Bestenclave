@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const whatsappService = require('@/services/whatsappService');
 const createCRUDController = require('@/controllers/middlewaresControllers/createCRUDController');
 const methods = createCRUDController('Material');
 
@@ -120,6 +121,32 @@ methods.adjustStock = async (req, res) => {
         console.log('Saving material...');
         await material.save();
         console.log('✓ Material saved');
+
+        // WhatsApp Low Stock Notification
+        if (material.reorderLevel > 0 && material.currentStock <= material.reorderLevel) {
+          const Admin = mongoose.model('Admin');
+          try {
+            const admins = await Admin.find({
+              removed: false,
+              role: { $in: ['owner', 'manager'] },
+            });
+
+            for (const admin of admins) {
+              if (admin.phone) {
+                await whatsappService.sendTemplate(admin.phone, 'low_stock_alert', 'en_US', [
+                  { type: 'text', text: material.name },
+                  {
+                    type: 'text',
+                    text: material.currentStock.toString() + ' ' + material.unit,
+                  },
+                ]);
+              }
+            }
+          } catch (e) {
+            console.error('WhatsApp Stock Alert Error:', e);
+          }
+        }
+
         console.log('=== END STOCK ADJUSTMENT ===\n');
 
         // Auto-fetch cost when transferring to villa
@@ -239,14 +266,37 @@ methods.history = async (req, res) => {
     try {
         const { id } = req.params;
         const InventoryTransaction = mongoose.model('InventoryTransaction');
+        const Expense = mongoose.model('Expense');
 
-        const history = await InventoryTransaction.find({ material: id })
+        const history = await InventoryTransaction.find({ material: id, removed: { $ne: true } })
             .sort({ date: -1, created: -1 })
             .limit(50); // Limit to last 50 transactions for performance
 
+        // Query Expense model to find which transactions have recorded payments
+        const transactionIds = history.map(t => t._id);
+        const paidExpenses = await Expense.find({
+            removed: { $ne: true },
+            'supplierPayments.inventoryTransaction': { $in: transactionIds }
+        });
+
+        const paidTransactionIds = new Set();
+        paidExpenses.forEach(exp => {
+            exp.supplierPayments.forEach(sp => {
+                if (sp.inventoryTransaction) {
+                    paidTransactionIds.add(sp.inventoryTransaction.toString());
+                }
+            });
+        });
+
+        const historyWithPaymentStatus = history.map(t => {
+            const obj = t.toObject();
+            obj.hasPayment = paidTransactionIds.has(t._id.toString());
+            return obj;
+        });
+
         return res.status(200).json({
             success: true,
-            result: history
+            result: historyWithPaymentStatus
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
@@ -258,7 +308,7 @@ methods.recentTransactions = async (req, res) => {
         const InventoryTransaction = mongoose.model('InventoryTransaction');
         const { limit = 10 } = req.query;
 
-        const transactions = await InventoryTransaction.find({})
+        const transactions = await InventoryTransaction.find({ removed: { $ne: true } })
             .sort({ date: -1, created: -1 })
             .limit(parseInt(limit))
             .populate('material')
@@ -335,6 +385,181 @@ methods.downloadReport = async (req, res) => {
     } catch (error) {
         console.error("Download Report Error:", error);
         return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+methods.deleteTransaction = async (req, res) => {
+    try {
+        const { id } = req.params; // ID of the transaction to delete/undo
+        const InventoryTransaction = mongoose.model('InventoryTransaction');
+        const Material = mongoose.model('Material');
+        const VillaStock = mongoose.model('VillaStock');
+        const { calculate } = require('@/helpers');
+
+        console.log(`\n=== UNDO TRANSACTION START: ${id} ===`);
+
+        const transaction = await InventoryTransaction.findOne({ _id: id, removed: { $ne: true } });
+        if (!transaction) {
+            console.error('Transaction not found or already removed');
+            return res.status(404).json({ success: false, message: 'Stock entry not found or already removed' });
+        }
+
+        // Check if payment has been made for this transaction
+        const Expense = mongoose.model('Expense');
+        const linkedPayment = await Expense.findOne({
+            removed: { $ne: true },
+            'supplierPayments.inventoryTransaction': id
+        });
+        if (linkedPayment) {
+            console.error(`Cannot delete transaction: a payment has already been recorded for this stock (Expense: ${linkedPayment._id})`);
+            return res.status(400).json({
+                success: false,
+                message: 'This stock entry cannot be deleted because payment has already been completed.'
+            });
+        }
+
+        const material = await Material.findOne({ _id: transaction.material, removed: { $ne: true } });
+        if (!material) {
+            console.error('Material associated with transaction not found');
+            return res.status(404).json({ success: false, message: 'Material not found' });
+        }
+
+        const { type, quantity, villa } = transaction;
+
+        // Undo Stock Updates
+        if (type === 'inward') {
+            if (villa) {
+                // Was TRANSFER: Global -> Villa
+                // Undo: VillaStock -= quantity, Global += quantity
+                const villaStock = await VillaStock.findOne({ villa, material: transaction.material });
+                if (villaStock) {
+                    if (villaStock.currentStock < quantity) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Cannot undo this transfer because some of these materials have already been used at the Villa.'
+                        });
+                    }
+                    const oldVillaStock = villaStock.currentStock;
+                    villaStock.currentStock = calculate.sub(villaStock.currentStock, quantity);
+                    villaStock.lastUpdated = Date.now();
+                    await villaStock.save();
+                    console.log(`Villa Stock undone: ${oldVillaStock} -> ${villaStock.currentStock}`);
+                }
+
+                // Return quantity to Global stock
+                const oldGlobalStock = material.currentStock;
+                material.currentStock = calculate.add(material.currentStock, quantity);
+                console.log(`Global Stock restored: ${oldGlobalStock} -> ${material.currentStock}`);
+
+                // Restore FIFO batch remainingQuantity (since this consumption from Global is undone)
+                let pendingRestore = quantity;
+                const batchesToRestore = await InventoryTransaction.find({
+                    material: transaction.material,
+                    type: 'inward',
+                    villa: { $exists: false },
+                    removed: { $ne: true }
+                }).sort({ date: -1, created: -1 });
+
+                for (const batch of batchesToRestore) {
+                    if (pendingRestore <= 0) break;
+                    const space = calculate.sub(batch.quantity, batch.remainingQuantity);
+                    if (space > 0) {
+                        const restoreAmt = Math.min(pendingRestore, space);
+                        batch.remainingQuantity = calculate.add(batch.remainingQuantity, restoreAmt);
+                        pendingRestore = calculate.sub(pendingRestore, restoreAmt);
+                        await batch.save();
+                        console.log(`  - Restored ${restoreAmt} back to batch ${batch._id}`);
+                    }
+                }
+
+            } else {
+                // Was PURCHASE: External -> Global
+                // Undo: Global -= quantity
+                if (material.currentStock < quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Cannot undo this purchase because some of these materials have already been used or transferred.'
+                    });
+                }
+
+                // Safety Check: Verify this specific purchase batch hasn't already been consumed by other transactions
+                if (transaction.remainingQuantity < quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Cannot delete this purchase entry because some or all of these materials have already been used or transferred.'
+                    });
+                }
+
+                const oldGlobalStock = material.currentStock;
+                material.currentStock = calculate.sub(material.currentStock, quantity);
+                console.log(`Global Stock undone: ${oldGlobalStock} -> ${material.currentStock}`);
+            }
+        } else if (type === 'outward') {
+            if (villa) {
+                // Was CONSUMPTION from Villa
+                // Undo: VillaStock += quantity
+                let villaStock = await VillaStock.findOne({ villa, material: transaction.material });
+                if (!villaStock) {
+                    villaStock = new VillaStock({ villa, material: transaction.material, currentStock: 0 });
+                }
+                const oldVillaStock = villaStock.currentStock;
+                villaStock.currentStock = calculate.add(villaStock.currentStock, quantity);
+                villaStock.lastUpdated = Date.now();
+                await villaStock.save();
+                console.log(`Villa Stock restored: ${oldVillaStock} -> ${villaStock.currentStock}`);
+            } else {
+                // Was CONSUMPTION from Global
+                // Undo: Global += quantity
+                const oldGlobalStock = material.currentStock;
+                material.currentStock = calculate.add(material.currentStock, quantity);
+                console.log(`Global Stock restored: ${oldGlobalStock} -> ${material.currentStock}`);
+
+                // Restore FIFO batch remainingQuantity
+                let pendingRestore = quantity;
+                const batchesToRestore = await InventoryTransaction.find({
+                    material: transaction.material,
+                    type: 'inward',
+                    villa: { $exists: false },
+                    removed: { $ne: true }
+                }).sort({ date: -1, created: -1 });
+
+                for (const batch of batchesToRestore) {
+                    if (pendingRestore <= 0) break;
+                    const space = calculate.sub(batch.quantity, batch.remainingQuantity);
+                    if (space > 0) {
+                        const restoreAmt = Math.min(pendingRestore, space);
+                        batch.remainingQuantity = calculate.add(batch.remainingQuantity, restoreAmt);
+                        pendingRestore = calculate.sub(pendingRestore, restoreAmt);
+                        await batch.save();
+                        console.log(`  - Restored ${restoreAmt} back to batch ${batch._id}`);
+                    }
+                }
+            }
+        }
+
+        // Save material stock level changes
+        await material.save();
+        console.log('✓ Material stock saved');
+
+        // Soft delete the transaction
+        transaction.removed = true;
+        await transaction.save();
+        console.log('✓ Transaction soft-deleted');
+
+        console.log(`=== UNDO TRANSACTION SUCCESS ===\n`);
+
+        return res.status(200).json({
+            success: true,
+            result: material,
+            message: 'Transaction undone and deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Error in deleteTransaction:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'An error occurred while deleting the stock entry.'
+        });
     }
 };
 

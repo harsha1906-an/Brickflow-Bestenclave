@@ -118,6 +118,8 @@ const bookingSchema = new mongoose.Schema({
             default: 'pending'
         },
         paidAmount: { type: Number, default: 0 },
+        paidAccountableAmount: { type: Number, default: 0 },
+        paidNonAccountableAmount: { type: Number, default: 0 },
         paymentDate: Date,
         notes: String,
         transactionId: String,

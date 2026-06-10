@@ -1,31 +1,34 @@
-
-require('dotenv').config();
 const mongoose = require('mongoose');
 
-// Connect to DB (will wait for connection)
-mongoose.connect(process.env.DATABASE || "mongodb://localhost:27017/brickflow_erp")
-    .then(() => console.log('Connected to DB'))
-    .catch(err => console.error('DB Connection Error:', err));
+// Connect to MongoDB
+mongoose.connect('mongodb://127.0.0.1:27017/idurar-erp-crm', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(async () => {
+        console.log("Connected to MongoDB");
+        const db = mongoose.connection.db;
+        const bookings = await db.collection('bookings').find({ removed: false }).sort({ _id: -1 }).limit(1).toArray();
 
-async function checkUsers() {
-    try {
-        const Admin = require('./src/models/coreModels/Admin');
-        const users = await Admin.find({});
-        console.log('--- Registered Users ---');
-        if (users.length === 0) {
-            console.log('No users found in database.');
-        } else {
-            users.forEach(user => {
-                console.log(`Email: ${user.email}, Name: ${user.name} ${user.surname}, Role: ${user.role}, Enabled: ${user.enabled}`);
-            });
+        for (const booking of bookings) {
+            console.log(`\nBooking ID: ${booking._id}`);
+            console.log(`Total: ${booking.totalAmount}, Official: ${booking.officialAmount}, Internal: ${booking.internalAmount}`);
+
+            const payments = await db.collection('payments').find({ booking: booking._id, removed: false }).toArray();
+            let paidOfficial = 0; let paidInternal = 0; let unknown = 0;
+            for (const p of payments) {
+                if (p.ledger === 'official') paidOfficial += p.amount;
+                else if (p.ledger === 'internal') paidInternal += p.amount;
+                else unknown += p.amount;
+            }
+
+            console.log(`Payments -> Official: ${paidOfficial}, Internal: ${paidInternal}, Unknown: ${unknown}`);
+
+            const pendingOfficial = (booking.officialAmount || 0) - paidOfficial;
+            const pendingInternal = (booking.internalAmount || 0) - paidInternal;
+            console.log(`Pending Official: ${pendingOfficial}, Pending Internal: ${pendingInternal}`);
         }
-        console.log('------------------------');
-        process.exit();
-    } catch (error) {
-        console.error('Error querying users:', error);
-        process.exit(1);
-    }
-}
 
-// Give it a moment to connect then run
-setTimeout(checkUsers, 1000);
+        mongoose.connection.close();
+    })
+    .catch(err => console.error(err));

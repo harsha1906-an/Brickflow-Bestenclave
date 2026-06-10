@@ -45,7 +45,7 @@ const ResetPassword = () => {
           name="signup"
           className="login-form"
           initialValues={{
-            remember: true,
+            remember: false,
           }}
           onFinish={onFinish}
         >

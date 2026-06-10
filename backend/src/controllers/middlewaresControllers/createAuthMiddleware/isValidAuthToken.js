@@ -15,7 +15,12 @@ const isValidAuthToken = async (req, res, next, { userModel, jwtSecret = 'JWT_SE
     console.log('DEBUG AUTH: Headers:', JSON.stringify(req.headers));
     console.log('DEBUG AUTH: Auth Header:', authHeader);
 
-    const token = authHeader && authHeader.split(' ')[1]; // Extract the token
+    let token = authHeader && authHeader.split(' ')[1]; // Extract the token
+    
+    // Fallback exactly to query parameter (sometimes used for downloads where window.open strips headers)
+    if (!token && req.query.token) {
+      token = req.query.token;
+    }
 
     if (!token)
       return res.status(401).json({

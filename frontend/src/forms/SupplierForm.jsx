@@ -4,6 +4,15 @@ import { Form, Input, InputNumber, Select, Switch, Row, Col } from 'antd';
 import { validatePhoneNumber } from '@/utils/helpers';
 
 export default function SupplierForm({ isUpdateForm = false }) {
+    const form = Form.useFormInstance();
+    const supplierTypeValue = Form.useWatch('supplierType', form);
+
+    React.useEffect(() => {
+        if (form && supplierTypeValue && typeof supplierTypeValue === 'string') {
+            form.setFieldsValue({ supplierType: [supplierTypeValue] });
+        }
+    }, [supplierTypeValue, form]);
+
     const supplierTypeOptions = [
         { value: 'cement', label: 'Cement' },
         { value: 'aggregate', label: 'Aggregate (Sand, Gravel)' },
@@ -44,7 +53,7 @@ export default function SupplierForm({ isUpdateForm = false }) {
                         name="supplierType"
                         rules={[{ required: true, message: 'Please select supplier type!' }]}
                     >
-                        <Select options={supplierTypeOptions} placeholder="Select material type" />
+                        <Select mode="tags" options={supplierTypeOptions} placeholder="Select material types" />
                     </Form.Item>
                 </Col>
                 <Col span={12}>

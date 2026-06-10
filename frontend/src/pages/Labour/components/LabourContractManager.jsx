@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Button, Divider, Row, Col, Table, Tag, Space, App, Typography, Checkbox, theme, Select } from 'antd';
+import axios from 'axios';
 import useMoney from '@/settings/useMoney';
 import { PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined } from '@ant-design/icons';
-import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
+import { BASE_URL } from '@/config/serverApiConfig';
 import { request } from '@/request';
 import useLanguage from '@/locale/useLanguage';
 import SelectAsync from '@/components/SelectAsync';
+import storePersist from '@/redux/storePersist';
 
 const { Text, Title } = Typography;
 
@@ -193,9 +195,45 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
     };
 
 
-    const handleDownloadVoucher = (expenseId) => {
+    const handleDownloadVoucher = async (expenseId) => {
         if (!expenseId) return;
-        window.location.href = `${DOWNLOAD_BASE_URL}expense/expense-${expenseId}.pdf`;
+        try {
+            message.loading({ content: 'Generating Voucher...', key: 'voucher_download' });
+            
+            // Get auth token
+            const auth = storePersist.get('auth');
+            const token = auth?.current?.token;
+            
+            // Dynamic URL based on environment (localhost vs prod)
+            // Points to /download/expense/...
+            const downloadUrl = `${BASE_URL}download/expense/expense-${expenseId}.pdf`;
+            
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to download voucher');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Labour_Cost_Voucher_${expenseId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            message.success({ content: 'Voucher Downloaded', key: 'voucher_download' });
+        } catch (error) {
+            console.error('Voucher download error:', error);
+            message.error({ content: 'Failed to download voucher.', key: 'voucher_download' });
+        }
     };
 
     const toggleMilestone = async (contract, milestoneIndex, updateData) => {

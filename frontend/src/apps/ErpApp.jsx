@@ -3,13 +3,13 @@ import { useEffect } from 'react';
 import { selectAppSettings } from '@/redux/settings/selectors';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { Layout } from 'antd';
+// import { Layout } from 'antd';
 
 import { useAppContext } from '@/context/appContext';
 
-import Navigation from '@/apps/Navigation/NavigationContainer';
+// import Navigation from '@/apps/Navigation/NavigationContainer';
 
-import HeaderContent from '@/apps/Header/HeaderContainer';
+// import HeaderContent from '@/apps/Header/HeaderContainer';
 import PageLoader from '@/components/PageLoader';
 
 import { settingsAction } from '@/redux/settings/actions';
@@ -24,9 +24,10 @@ import storePersist from '@/redux/storePersist';
 import { request } from '@/request';
 
 import useMobile from '@/hooks/useMobile';
+import ProAppLayout from '@/layout/ProAppLayout';
 
 export default function ErpCrmApp() {
-  const { Content } = Layout;
+  // const { Content } = Layout;
 
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose, currentApp } = stateApp;
@@ -36,6 +37,7 @@ export default function ErpCrmApp() {
   const dispatch = useDispatch();
 
   useLayoutEffect(() => {
+    console.log('App Loaded - No Install Button Version');
     dispatch(settingsAction.list({ entity: 'setting' }));
   }, []);
 
@@ -69,25 +71,9 @@ export default function ErpCrmApp() {
 
   if (settingIsloaded)
     return (
-      <Layout hasSider>
-        <Navigation />
-
-        {isMobile ? (
-          <Layout style={{ marginLeft: 0 }}>
-            <HeaderContent />
-            <Content className="erp-content">
-              <AppRouter />
-            </Content>
-          </Layout>
-        ) : (
-          <Layout>
-            <HeaderContent />
-            <Content className="erp-content">
-              <AppRouter />
-            </Content>
-          </Layout>
-        )}
-      </Layout>
+      <ProAppLayout>
+        <AppRouter />
+      </ProAppLayout>
     );
   else return <PageLoader />;
 }

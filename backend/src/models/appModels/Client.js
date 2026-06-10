@@ -49,6 +49,11 @@ const schema = new mongoose.Schema({
   // GST Details
   state: String,
   gstin: String,
+  companyId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Company',
+    index: true,
+  },
   createdBy: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
   assigned: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
   created: {

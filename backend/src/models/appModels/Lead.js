@@ -52,6 +52,11 @@ const schema = new mongoose.Schema({
     notes: {
         type: String,
     },
+    companyId: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'Company',
+        index: true,
+    },
     createdBy: { type: mongoose.Schema.ObjectId, ref: 'Admin' },
     created: {
         type: Date,

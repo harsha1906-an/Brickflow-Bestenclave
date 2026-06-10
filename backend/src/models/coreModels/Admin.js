@@ -17,6 +17,9 @@ const adminSchema = new Schema({
     trim: true,
     required: true,
   },
+  phone: {
+    type: String,
+  },
   name: { type: String, required: true },
   surname: { type: String },
   photo: {

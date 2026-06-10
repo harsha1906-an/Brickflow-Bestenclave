@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const Joi = require('joi');
 const mongoose = require('mongoose');
 
-const shortid = require('shortid');
+const { nanoid } = require('nanoid');
 
 const resetPassword = async (req, res, { userModel }) => {
   const UserPassword = mongoose.model(userModel + 'Password');
@@ -53,9 +53,9 @@ const resetPassword = async (req, res, { userModel }) => {
     });
   }
 
-  const salt = shortid.generate();
+  const salt = nanoid();
   const hashedPassword = bcrypt.hashSync(salt + password);
-  const emailToken = shortid.generate();
+  const emailToken = nanoid();
 
   const token = jwt.sign(
     {
@@ -72,7 +72,7 @@ const resetPassword = async (req, res, { userModel }) => {
       password: hashedPassword,
       salt: salt,
       emailToken: emailToken,
-      resetToken: shortid.generate(),
+      resetToken: nanoid(),
       emailVerified: true,
     },
     {
@@ -104,7 +104,7 @@ const resetPassword = async (req, res, { userModel }) => {
         email: user.email,
         photo: user.photo,
         token: token,
-        maxAge: req.body.remember ? 365 : null,
+        maxAge: null,
       },
       message: 'Successfully resetPassword user',
     });

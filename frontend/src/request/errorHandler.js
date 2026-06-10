@@ -44,15 +44,36 @@ const errorHandler = (error) => {
   }
 
   if (response && response.status) {
-    const message = response.data && response.data.message;
+    const rawMessage = response.data && response.data.message;
+    const { status } = response;
+    
+    // Message Abstraction Logic
+    let errorText = rawMessage || codeMessage[status];
+    let title = 'Action Failed';
 
-    const errorText = message || codeMessage[response.status];
-    const { status, error } = response;
+    if (rawMessage) {
+      const lowerMsg = rawMessage.toLowerCase();
+      if (lowerMsg.includes('e11000') || lowerMsg.includes('duplicate')) {
+        errorText = 'This record already exists. Please use a unique value.';
+      } else if (lowerMsg.includes('validation')) {
+        errorText = 'Please ensure all required fields are correctly filled.';
+      } else if (lowerMsg.includes('cast to objectid failed')) {
+        errorText = 'The requested item could not be found or is invalid.';
+      } else if (lowerMsg.includes('jwt') || lowerMsg.includes('token')) {
+        errorText = 'Your session has expired. Please log in again.';
+        title = 'Session Expired';
+      } else if (status === 202) {
+        errorText = 'Unable to save your changes at this time.';
+        title = 'Could Not Save';
+      } else if (status >= 500) {
+        errorText = 'Oops! Something went wrong on our end. Please try again later.';
+      }
+    }
 
     notification.error({
-      message: `Request error ${status}`,
+      message: title,
       description: errorText,
-      duration: 20,
+      duration: 8,
     });
 
     if (response?.data?.error?.name === 'JsonWebTokenError') {

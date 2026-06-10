@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { Switch, Tag } from 'antd';
 import { CloseOutlined, CheckOutlined } from '@ant-design/icons';
 import { countryList } from '@/utils/countryList';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 import color from '@/utils/color';
 
 export const dataForRead = ({ fields, translate }) => {

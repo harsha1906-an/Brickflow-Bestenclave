@@ -1,16 +1,16 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const { generate: uniqueId } = require('shortid');
+const { nanoid: uniqueId } = require('nanoid');
 
 const updateProfilePassword = async (userModel, req, res) => {
   const UserPassword = mongoose.model(userModel + 'Password');
 
   const reqUserName = userModel.toLowerCase();
   const userProfile = req[reqUserName];
-  let { password, passwordCheck } = req.body;
+  let { currentPassword, password, passwordCheck } = req.body;
 
-  if (!password || !passwordCheck)
+  if (!currentPassword || !password || !passwordCheck)
     return res.status(400).json({ msg: 'Not all fields have been entered.' });
 
   if (password.length < 8)
@@ -20,6 +20,20 @@ const updateProfilePassword = async (userModel, req, res) => {
 
   if (password !== passwordCheck)
     return res.status(400).json({ msg: 'Enter the same password twice for verification.' });
+
+  // Verify current password
+  const currentPasswordDoc = await UserPassword.findOne({ user: userProfile._id, removed: false }).exec();
+  if (!currentPasswordDoc) {
+    return res.status(404).json({
+      success: false,
+      message: 'Current password credentials not found.',
+    });
+  }
+
+  const isMatch = bcrypt.compareSync(currentPasswordDoc.salt + currentPassword, currentPasswordDoc.password);
+  if (!isMatch) {
+    return res.status(400).json({ msg: 'Invalid current password.' });
+  }
 
   // Find document by id and updates with the required fields
 

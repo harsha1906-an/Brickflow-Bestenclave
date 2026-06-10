@@ -259,11 +259,20 @@ export default function PaymentForm({ maxAmount = null, isUpdateForm = false }) 
           },
         ]}
       >
-        <Select>
-          <Select.Option value="Cash">Cash</Select.Option>
-          <Select.Option value="Bank Transfer">Bank Transfer</Select.Option>
+        <Select
+          onChange={(value) => {
+            if (value === 'Cash') {
+              form.setFieldValue('ledger', 'internal');
+            } else {
+              form.setFieldValue('ledger', 'official');
+            }
+          }}
+        >
+          <Select.Option value="Cash">Cash (Usually Internal)</Select.Option>
+          <Select.Option value="Bank Transfer">Bank Transfer (Usually Official)</Select.Option>
           <Select.Option value="Card">Card</Select.Option>
           <Select.Option value="Loan">Loan</Select.Option>
+          <Select.Option value="Cheque">Cheque</Select.Option>
         </Select>
       </Form.Item>
       <Form.Item
@@ -295,14 +304,15 @@ export default function PaymentForm({ maxAmount = null, isUpdateForm = false }) 
         </Select>
       </Form.Item>
       <Form.Item
-        label="Ledger / Account"
+        label="Count this payment towards"
         name="ledger"
         initialValue="official"
         rules={[{ required: true }]}
+        extra="Usually 'Official' for Bank/Cheque, 'Internal' for Cash."
       >
         <Select>
-          <Select.Option value="official">Official Account (White)</Select.Option>
-          <Select.Option value="internal">Internal Account (Black)</Select.Option>
+          <Select.Option value="official">Official Balance (White)</Select.Option>
+          <Select.Option value="internal">Internal Balance (Black)</Select.Option>
         </Select>
       </Form.Item>
       <Form.Item

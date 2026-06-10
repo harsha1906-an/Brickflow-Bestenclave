@@ -9,7 +9,7 @@ import useLanguage from '@/locale/useLanguage';
 import { erp } from '@/redux/erp/actions';
 
 import calculate from '@/utils/calculate';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 import { selectUpdatedItem } from '@/redux/erp/selectors';
 import Loading from '@/components/Loading';
 

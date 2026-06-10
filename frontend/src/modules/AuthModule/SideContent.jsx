@@ -23,17 +23,13 @@ export default function SideContent() {
         <img
           src={logo}
           alt="Brick Flow"
-          style={{ margin: '0 0 40px', display: 'block' }}
-          height={63}
-          width={220}
+          style={{ margin: '0 0 40px', display: 'block', maxWidth: '100%', height: 'auto' }}
+          width={250}
         />
 
         <Title level={1} style={{ fontSize: 28 }}>
-          Free Open Source ERP / CRM
+          Welcome to Brick Flow
         </Title>
-        <Text>
-          Accounting / Invoicing / Quote App <b /> based on Node.js React.js Ant Design
-        </Text>
 
         <div className="space20"></div>
       </div>

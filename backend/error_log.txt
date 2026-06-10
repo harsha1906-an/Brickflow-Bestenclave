@@ -1,6 +1,0 @@
-{"message":"Payment validation failed: client: Path `client` is required.","errors":{},"_message":"Payment validation failed"}
-Stack: ValidationError: Payment validation failed: client: Path `client` is required.
-    at Document.invalidate (C:\Users\Harsha\Documents\I couldent do it\idurar-erp-crm\backend\node_modules\mongoose\lib\document.js:3201:32)
-    at C:\Users\Harsha\Documents\I couldent do it\idurar-erp-crm\backend\node_modules\mongoose\lib\document.js:2994:17
-    at C:\Users\Harsha\Documents\I couldent do it\idurar-erp-crm\backend\node_modules\mongoose\lib\schemaType.js:1370:9
-    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)

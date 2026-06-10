@@ -9,12 +9,13 @@ const updateManySetting = async (req, res) => {
   const { settings } = req.body;
 
   for (const setting of settings) {
-    if (!setting.hasOwnProperty('settingKey') || !setting.hasOwnProperty('settingValue')) {
+    if (!setting.hasOwnProperty('settingKey')) {
       settingsHasError = true;
       break;
     }
 
-    const { settingKey, settingValue, settingCategory } = setting;
+    const { settingKey, settingCategory } = setting;
+    const settingValue = setting.hasOwnProperty('settingValue') ? setting.settingValue : '';
 
     updateDataArray.push({
       updateMany: {

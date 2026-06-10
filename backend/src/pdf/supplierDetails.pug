@@ -91,6 +91,8 @@ html
             div #{settings.company_name}
             if settings.company_address
                 div #{settings.company_address}
+                if settings.company_gstin
+                  div GSTIN: #{settings.company_gstin}
             div
                 if settings.company_phone
                     span Phone: #{settings.company_phone} 
@@ -109,6 +111,10 @@ html
           td.label-cell Supplier Type
           td.value-cell 
             if model.supplierType
+              if Array.isArray(model.supplierType)
+                each type in model.supplierType
+                  span.tag.tag-blue(style="margin-right: 5px;") #{type.charAt(0).toUpperCase() + type.slice(1)}
+              else
                 span.tag.tag-blue #{model.supplierType.charAt(0).toUpperCase() + model.supplierType.slice(1)}
             else
                 | -

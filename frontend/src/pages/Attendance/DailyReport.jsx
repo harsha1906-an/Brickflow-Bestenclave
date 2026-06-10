@@ -148,6 +148,60 @@ const DailyReport = () => {
         }
     };
 
+    const handleDownloadTaxRange = async () => {
+        if (!reportRange || reportRange.length !== 2) {
+            messageApi.warning('Please select a date range');
+            return;
+        }
+
+        setDownloading(true);
+        setProgress(0);
+
+        const timer = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 99) {
+                    clearInterval(timer);
+                    return 99;
+                }
+                const increment = prev < 60 ? 10 : prev < 90 ? 5 : 1;
+                return prev + increment;
+            });
+        }, 100);
+
+        try {
+            const startDate = reportRange[0].format('YYYY-MM-DD');
+            const endDate = reportRange[1].format('YYYY-MM-DD');
+
+            const response = await request.pdf({
+                entity: `expense/tax-report/${companyId}?startDate=${startDate}&endDate=${endDate}`,
+            });
+
+            clearInterval(timer);
+            setProgress(100);
+
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `TaxReport_${startDate}_to_${endDate}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            setTimeout(() => {
+                setDownloading(false);
+                setProgress(0);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Download failed:', error);
+            clearInterval(timer);
+            setDownloading(false);
+            messageApi.error('Failed to download Tax report');
+        }
+    };
+
     // Expense Modal Logic
     const [expenseModalOpen, setExpenseModalOpen] = useState(false);
     const [expenseForm] = Form.useForm();
@@ -213,6 +267,7 @@ const DailyReport = () => {
                                             style={{ flex: 1 }}
                                         />
                                         <Button icon={<DownloadOutlined />} onClick={handleDownloadRange}>PDF</Button>
+                                        <Button type="primary" style={{ backgroundColor: '#0288d1' }} icon={<DollarOutlined />} onClick={handleDownloadTaxRange}>Tax Report</Button>
                                     </div>
                                 </Col>
                             </Row>

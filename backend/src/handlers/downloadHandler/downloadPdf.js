@@ -4,6 +4,38 @@ const moment = require('moment');
 
 module.exports = downloadPdf = async (req, res, { directory, id }) => {
   try {
+    const role = req.admin?.role || 'engineer';
+    
+    // RBAC mapping for download directories
+    const directoryToEntity = {
+      invoice: 'invoice',
+      quote: 'quote',
+      payment: 'payment',
+      paymentrequest: 'booking',
+      bookingreceipt: 'booking',
+      expense: 'expense',
+      supplier: 'supplier',
+      inventoryreport: 'material',
+      villa: 'villa'
+    };
+
+    const entityName = directoryToEntity[directory] || directory;
+    
+    // Check permission using the rbacConfig
+    const rbacConfig = require('@/settings/rbacConfig');
+    let allowedRoles = ['owner', 'manager']; // Default fallback
+    
+    if (rbacConfig.entities[entityName] && rbacConfig.entities[entityName]['read']) {
+      allowedRoles = rbacConfig.entities[entityName]['read'];
+    }
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: Your role (${role}) is not authorized to download this document.`
+      });
+    }
+
     let modelName = directory.slice(0, 1).toUpperCase() + directory.slice(1);
     if (directory === 'paymentrequest' || directory === 'bookingreceipt') {
       modelName = 'Booking';
@@ -16,11 +48,16 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
       if (Model.schema.paths.villa) query = query.populate('villa');
       if (Model.schema.paths.labour) query = query.populate('labour');
       if (Model.schema.paths.supplier) query = query.populate('supplier');
-      const result = await query.exec();
+      let result = await query.exec();
 
       // Throw error if no result
       if (!result) {
         throw { name: 'ValidationError' };
+      }
+
+      // Convert to plain object to allow adding custom properties like inWords
+      if (result.toObject) {
+         result = result.toObject();
       }
 
       // Handle paymentrequest specific logic
@@ -76,10 +113,11 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
       const downloadName = `${modelName}_${clientName}_${invoiceNum}_${dateStr}.pdf`;
 
       const pdfFormat = (modelName.toLowerCase() === 'bookingreceipt' || modelName.toLowerCase() === 'expensevoucher') ? 'A5' : 'A4';
+      const isLandscape = (modelName.toLowerCase() === 'expensevoucher'); // Voucher is landscape
 
       const pdfBuffer = await custom.generatePdf(
         modelName,
-        { filename: folderPath, format: pdfFormat }, // targetLocation removed
+        { filename: folderPath, format: pdfFormat, landscape: isLandscape }, 
         result
       );
 

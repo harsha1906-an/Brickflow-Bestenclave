@@ -8,6 +8,8 @@ import { useMoney, useDate } from '@/settings';
 import { request } from '@/request';
 import SelectAsync from '@/components/SelectAsync';
 import dayjs from 'dayjs';
+import storePersist from '@/redux/storePersist';
+import { API_BASE_URL } from '@/config/serverApiConfig';
 
 const { RangePicker } = DatePicker;
 
@@ -137,6 +139,10 @@ export default function ExpenseList() {
 
     const handleDownloadPDF = () => {
         const filters = [];
+        const auth = storePersist.get('auth');
+        const token = auth?.current?.token || '';
+        filters.push(`token=${token}`);
+
         if (dateRange && dateRange[0] && dateRange[1]) {
             filters.push(`startDate=${dateRange[0].format('YYYY-MM-DD')}`);
             filters.push(`endDate=${dateRange[1].format('YYYY-MM-DD')}`);
@@ -153,7 +159,7 @@ export default function ExpenseList() {
         }
 
         const queryString = filters.length > 0 ? `?${filters.join('&')}` : '';
-        const url = `${process.env.VITE_BACKEND_SERVER}api/expense/pdf-report/${companyId}${queryString}`;
+        const url = `${API_BASE_URL}expense/pdf-report/${companyId}${queryString}`;
         window.open(url, '_blank');
     };
 

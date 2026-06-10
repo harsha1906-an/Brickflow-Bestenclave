@@ -30,6 +30,8 @@ html
         a(href="#" style="font-size: 12px; color: #0088cc; text-decoration: none;") << Back to Reports
       .right
         img.logo(src=settings.public_server_file+settings.company_logo style="max-height: 50px;")
+        if settings.company_gstin
+          div(style="font-size: 10px; margin-top: 5px; text-align: right;") GSTIN: #{settings.company_gstin}
 
     .criteria-section
         strong Report Criteria

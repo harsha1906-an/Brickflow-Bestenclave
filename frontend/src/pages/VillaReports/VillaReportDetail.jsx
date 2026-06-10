@@ -109,6 +109,7 @@ export default function VillaReportDetail() {
             let contractTotal = 0;
             let contractPaid = 0;
             let contractList = [];
+            const milestoneExpenseMap = {}; // Map expenseId to grossAmount
 
             if (contractRes.success && contractRes.result) {
                 contractList = contractRes.result;
@@ -117,19 +118,35 @@ export default function VillaReportDetail() {
                     if (contract.milestones && Array.isArray(contract.milestones)) {
                         contract.milestones.forEach(ms => {
                             if (ms.isCompleted) {
-                                contractPaid += ms.netAmount || 0;
+                                contractPaid += ms.amount || 0;
+                                if (ms.expenseId) {
+                                    milestoneExpenseMap[ms.expenseId] = ms.amount; // Store Gross Amount
+                                }
                             }
                         });
                     }
                 });
             }
 
+            // Adjust Labour Expenses to use Gross Amount for Milestones
+            const adjustedLabourExpenses = lExpenses.map(exp => {
+                if (milestoneExpenseMap[exp._id]) {
+                    return { ...exp, amount: milestoneExpenseMap[exp._id] };
+                }
+                return exp;
+            });
+            
+            // Recalculate Labour Total based on adjustments
+            const adjustedLabourTotal = adjustedLabourExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+            setLabourExpenses(adjustedLabourExpenses);
+
             setStats({
                 material: mTotal,
-                labour: lTotal,
-                total: mTotal + lTotal,
+                labour: adjustedLabourTotal,
+                total: mTotal + adjustedLabourTotal,
                 payments: pTotal,
-                balance: pTotal - (mTotal + lTotal),
+                balance: pTotal - (mTotal + adjustedLabourTotal),
                 contractTotal: contractTotal,
                 contractPaid: contractPaid,
                 contractRemaining: contractTotal - contractPaid

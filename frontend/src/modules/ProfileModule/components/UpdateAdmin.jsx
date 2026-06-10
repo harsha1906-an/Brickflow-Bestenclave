@@ -1,5 +1,5 @@
 import { useProfileContext } from '@/context/profileContext';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 import { CloseCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { Button, Col, Form, Row } from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';

@@ -14,7 +14,6 @@ export default function DashboardSettings({ visible, onClose }) {
     // Default configuration - show everything
     const defaultConfig = {
         chart: true,
-        quoteSummary: true,
         paymentSummary: true,
         dailyCost: true,
         statisticCards: true,
@@ -64,12 +63,7 @@ export default function DashboardSettings({ visible, onClose }) {
                     {translate('Income vs Expense Chart')}
                 </Checkbox>
 
-                <Checkbox
-                    checked={config.quoteSummary}
-                    onChange={(e) => handleChange('quoteSummary', e.target.checked)}
-                >
-                    {translate('Quote Summary')}
-                </Checkbox>
+
 
                 <Checkbox
                     checked={config.paymentSummary}
@@ -103,7 +97,7 @@ export default function DashboardSettings({ visible, onClose }) {
                     checked={config.recentQuotes}
                     onChange={(e) => handleChange('recentQuotes', e.target.checked)}
                 >
-                    {translate('Recent Quotes')}
+                    {translate('Inventory Analytics')}
                 </Checkbox>
             </div>
         </Drawer>

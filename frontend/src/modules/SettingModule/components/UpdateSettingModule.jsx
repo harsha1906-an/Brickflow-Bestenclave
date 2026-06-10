@@ -1,4 +1,4 @@
-// import { generate as uniqueId } from 'shortid';
+// import { nanoid as uniqueId } from 'nanoid';
 // import { SyncOutlined } from '@ant-design/icons';
 import { Divider } from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';

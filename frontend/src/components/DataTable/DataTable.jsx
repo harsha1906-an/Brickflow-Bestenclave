@@ -19,7 +19,7 @@ import useLanguage from '@/locale/useLanguage';
 import { dataForTable } from '@/utils/dataStructure';
 import { useMoney, useDate } from '@/settings';
 
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 import { useCrudContext } from '@/context/crud';
 
@@ -181,7 +181,7 @@ export default function DataTable({ config, extra = [] }) {
         onBack={() => window.history.back()}
         backIcon={<ArrowLeftOutlined />}
         title={DATATABLE_TITLE}
-        ghost={false}
+        ghost={true}
         extra={[
           <Input
             key={`searchFilterDataTable}`}

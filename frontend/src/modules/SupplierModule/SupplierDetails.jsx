@@ -68,11 +68,31 @@ const SupplierDetails = ({ item, config }) => {
             const transactions = inventoryRes.result || [];
             const expenses = expenseRes.result || [];
 
-            setInventoryHistory(transactions);
+            const transactionPayments = {};
+            expenses.forEach(exp => {
+                if (exp.supplierPayments && Array.isArray(exp.supplierPayments)) {
+                    exp.supplierPayments.forEach(sp => {
+                        const tId = sp.inventoryTransaction?._id || sp.inventoryTransaction;
+                        if (tId) {
+                            transactionPayments[tId] = (transactionPayments[tId] || 0) + (sp.amountPaid || 0);
+                        }
+                    });
+                }
+            });
+
+            const enrichedTransactions = transactions.filter(t => t.type === 'inward').map(t => {
+                const paid = transactionPayments[t._id] || 0;
+                return {
+                    ...t,
+                    paidAmount: paid,
+                    balanceAmount: (t.totalCost || 0) - paid
+                };
+            });
+
+            setInventoryHistory(enrichedTransactions);
             setExpenseHistory(expenses);
 
-            const totalMaterialCost = transactions
-                .filter(t => t.type === 'inward')
+            const totalMaterialCost = enrichedTransactions
                 .reduce((sum, t) => sum + (t.totalCost || 0), 0);
 
             const totalPaid = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -109,6 +129,8 @@ const SupplierDetails = ({ item, config }) => {
         { title: 'Item', dataIndex: ['material', 'name'] },
         { title: 'Qty', dataIndex: 'quantity', render: (q, r) => `${q} ${r.material?.unit || ''}` },
         { title: 'Cost', dataIndex: 'totalCost', align: 'right', render: amount => moneyFormatter({ amount }) },
+        { title: 'Paid', dataIndex: 'paidAmount', align: 'right', render: amount => moneyFormatter({ amount }) },
+        { title: 'Balance', dataIndex: 'balanceAmount', align: 'right', render: amount => moneyFormatter({ amount }) },
         { title: 'Ref', dataIndex: 'reference' }
     ];
 
@@ -125,7 +147,59 @@ const SupplierDetails = ({ item, config }) => {
             <PageHeader
                 onBack={() => navigate('/supplier')}
                 title={item.name}
-                subTitle={item.supplierType}
+                subTitle={
+                    Array.isArray(item.supplierType) ? (
+                        <div style={{ display: 'inline-flex', gap: '4px', flexWrap: 'wrap', verticalAlign: 'middle' }}>
+                            {item.supplierType.map(type => {
+                                const typeLabels = {
+                                    cement: 'Cement',
+                                    aggregate: 'Aggregate',
+                                    steel: 'Steel',
+                                    rods: 'Steel Rods',
+                                    bricks: 'Bricks',
+                                    tiles: 'Tiles',
+                                    electrical: 'Electrical',
+                                    plumbing: 'Plumbing',
+                                    hardware: 'Hardware',
+                                    paint: 'Paint',
+                                    wood: 'Wood',
+                                    glass: 'Glass',
+                                    sanitary: 'Sanitary',
+                                    other: 'Other'
+                                };
+                                return (
+                                    <Tag color="blue" key={type}>
+                                        {typeLabels[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : '')}
+                                    </Tag>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        item.supplierType && (() => {
+                            const typeLabels = {
+                                cement: 'Cement',
+                                aggregate: 'Aggregate',
+                                steel: 'Steel',
+                                rods: 'Steel Rods',
+                                bricks: 'Bricks',
+                                tiles: 'Tiles',
+                                electrical: 'Electrical',
+                                plumbing: 'Plumbing',
+                                hardware: 'Hardware',
+                                paint: 'Paint',
+                                wood: 'Wood',
+                                glass: 'Glass',
+                                sanitary: 'Sanitary',
+                                other: 'Other'
+                            };
+                            return (
+                                <Tag color="blue">
+                                    {typeLabels[item.supplierType] || (item.supplierType ? item.supplierType.charAt(0).toUpperCase() + item.supplierType.slice(1) : '')}
+                                </Tag>
+                            );
+                        })()
+                    )
+                }
                 extra={[
                     <Button key="close" onClick={() => navigate('/supplier')} icon={<CloseCircleOutlined />}>
                         {translate('Close')}
@@ -234,7 +308,7 @@ const SupplierDetails = ({ item, config }) => {
                 onCancel={() => setPaymentModalVisible(false)}
                 footer={null}
                 destroyOnClose
-                width={800}
+                width={1000}
             >
                 <PaymentWrapper
                     supplier={item}
@@ -242,6 +316,8 @@ const SupplierDetails = ({ item, config }) => {
                     maxAmount={financials.balance > 0 ? financials.balance : null}
                     moneyFormatter={moneyFormatter}
                     currency_symbol={currency_symbol}
+                    pendingTransactions={inventoryHistory.filter(t => t.balanceAmount > 0)}
+                    formatDate={formatDate}
                 />
             </Modal>
         </>
@@ -262,17 +338,92 @@ const StatisticCard = ({ Balance, moneyFormatter, token }) => {
     )
 }
 
-const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, currency_symbol }) => {
+const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, currency_symbol, pendingTransactions, formatDate }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [allocations, setAllocations] = useState({});
+
+    // When rows are selected/deselected, update total amount
+    useEffect(() => {
+        let total = 0;
+        selectedRowKeys.forEach(key => {
+            total += allocations[key] || 0;
+        });
+        form.setFieldsValue({ amount: total });
+    }, [selectedRowKeys, allocations, form]);
+
+    const handleAllocationChange = (val, recordId) => {
+        setAllocations(prev => ({
+            ...prev,
+            [recordId]: val
+        }));
+    };
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: (newSelectedRowKeys, selectedRows) => {
+            setSelectedRowKeys(newSelectedRowKeys);
+            // Default allocation is the full balance if not already set
+            const newAllocations = { ...allocations };
+            selectedRows.forEach(row => {
+                if (!newAllocations[row._id]) {
+                    newAllocations[row._id] = row.balanceAmount;
+                }
+            });
+            setAllocations(newAllocations);
+        },
+    };
+
+    const columns = [
+        { title: 'Date', dataIndex: 'date', render: d => formatDate(d) },
+        { title: 'Material', dataIndex: ['material', 'name'] },
+        { title: 'Cost', dataIndex: 'totalCost', align: 'right', render: amount => moneyFormatter({ amount }) },
+        { title: 'Balance', dataIndex: 'balanceAmount', align: 'right', render: amount => moneyFormatter({ amount }) },
+        { 
+            title: 'Payment Amount', 
+            dataIndex: 'paymentAmount', 
+            width: 150,
+            render: (_, record) => {
+                const isSelected = selectedRowKeys.includes(record._id);
+                return (
+                    <InputNumber
+                        min={0}
+                        max={record.balanceAmount}
+                        disabled={!isSelected}
+                        value={allocations[record._id] !== undefined ? allocations[record._id] : record.balanceAmount}
+                        onChange={(val) => handleAllocationChange(val, record._id)}
+                        style={{ width: '100%' }}
+                    />
+                );
+            }
+        }
+    ];
 
     const onFinish = async (values) => {
+        if (values.amount <= 0) {
+            return;
+        }
         setLoading(true);
         try {
+            const supplierPayments = selectedRowKeys.map(key => ({
+                inventoryTransaction: key,
+                amountPaid: allocations[key] || 0
+            })).filter(sp => sp.amountPaid > 0);
+
+            // Calculate tax
+            const taxRate = values.taxRate || 0;
+            const taxAmount = values.amount * (taxRate / 100);
+            const totalAmount = values.amount + taxAmount;
+
             const payload = {
                 ...values,
+                taxRate,
+                taxAmount,
+                totalAmount,
                 recipientType: 'Supplier',
                 supplier: supplier._id, // Enforce current supplier
+                supplierPayments
             };
             const response = await request.create({ entity: 'expense', jsonData: payload });
             if (response.success) {
@@ -293,24 +444,53 @@ const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, curren
             initialValues={{
                 paymentMode: 'Cash',
                 recipientType: 'Supplier',
-                supplier: supplier._id
+                supplier: supplier._id,
+                amount: 0,
+                gstin: supplier?.taxNumber || ''
             }}
         >
             <Form.Item name="recipientType" hidden><Input /></Form.Item>
             <Form.Item name="supplier" hidden><Input /></Form.Item>
 
-            <QuickPaymentForm maxAmount={maxAmount} currency_symbol={currency_symbol} />
+            <Divider orientation="left">Select Transactions to Pay</Divider>
+            <Table
+                rowSelection={rowSelection}
+                columns={columns}
+                dataSource={pendingTransactions}
+                rowKey="_id"
+                pagination={false}
+                size="small"
+                style={{ marginBottom: 24 }}
+                scroll={{ y: 240 }}
+            />
 
-            <Form.Item>
-                <Button type="primary" htmlType="submit" loading={loading} block>
-                    Record Payment
-                </Button>
+            <QuickPaymentForm currency_symbol={currency_symbol} />
+
+            <Form.Item shouldUpdate>
+                {() => {
+                    const amount = form.getFieldValue('amount') || 0;
+                    const taxRate = form.getFieldValue('taxRate') || 0;
+                    const taxAmount = amount * (taxRate / 100);
+                    const totalAmount = amount + taxAmount;
+                    
+                    return (
+                        <Button 
+                            type="primary" 
+                            htmlType="submit" 
+                            loading={loading} 
+                            block 
+                            disabled={!amount || amount <= 0}
+                        >
+                            Record Payment of {moneyFormatter({ amount: totalAmount })}
+                        </Button>
+                    );
+                }}
             </Form.Item>
         </Form>
     );
 };
 
-const QuickPaymentForm = ({ maxAmount, currency_symbol }) => {
+const QuickPaymentForm = ({ currency_symbol }) => {
     return (
         <>
             <Row gutter={16}>
@@ -320,12 +500,34 @@ const QuickPaymentForm = ({ maxAmount, currency_symbol }) => {
                     </Form.Item>
                 </Col>
                 <Col span={12}>
-                    <Form.Item name="amount" label="Amount" initialValue={maxAmount} rules={[{ required: true }]}>
+                    <Form.Item name="amount" label="Base Amount" rules={[{ required: true }]}>
                         <InputNumber
                             min={0}
                             style={{ width: '100%' }}
                             addonBefore={currency_symbol}
+                            disabled
                         />
+                    </Form.Item>
+                </Col>
+            </Row>
+            <Row gutter={16}>
+                <Col span={12}>
+                    <Form.Item name="taxRate" label="Tax Slab (India)">
+                        <Select allowClear placeholder="Select Tax Slab">
+                            <Select.Option value={0}>0%</Select.Option>
+                            <Select.Option value={5}>5%</Select.Option>
+                            <Select.Option value={12}>12%</Select.Option>
+                            <Select.Option value={18}>18%</Select.Option>
+                            <Select.Option value={28}>28%</Select.Option>
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col span={12}>
+                    <Form.Item name="taxType" label="Tax Type">
+                        <Select allowClear placeholder="Select Tax Type">
+                            <Select.Option value="IGST">IGST</Select.Option>
+                            <Select.Option value="CGST_SGST">CGST & SGST</Select.Option>
+                        </Select>
                     </Form.Item>
                 </Col>
             </Row>
@@ -347,9 +549,18 @@ const QuickPaymentForm = ({ maxAmount, currency_symbol }) => {
                     </Form.Item>
                 </Col>
             </Row>
-            <Form.Item name="description" label="Notes">
-                <Input.TextArea rows={2} />
-            </Form.Item>
+            <Row gutter={16}>
+                <Col span={12}>
+                    <Form.Item name="gstin" label="GSTIN Number">
+                        <Input placeholder="Enter GSTIN Number" />
+                    </Form.Item>
+                </Col>
+                <Col span={12}>
+                    <Form.Item name="description" label="Notes">
+                        <Input.TextArea rows={1} />
+                    </Form.Item>
+                </Col>
+            </Row>
         </>
     )
 }

@@ -1,5 +1,10 @@
 const update = async (Model, req, res) => {
   // Find document by id and updates with the required fields
+  
+  // Prevent Mass Assignment of critical system fields
+  const blacklistedFields = ['removed', 'enabled', 'role', 'password', 'salt', 'loggedSessions'];
+  blacklistedFields.forEach(field => delete req.body[field]);
+
   req.body.removed = false;
   const result = await Model.findOneAndUpdate(
     {

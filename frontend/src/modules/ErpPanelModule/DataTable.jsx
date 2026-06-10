@@ -22,7 +22,7 @@ import useLanguage from '@/locale/useLanguage';
 import { erp } from '@/redux/erp/actions';
 import { selectListItems } from '@/redux/erp/selectors';
 import { useErpContext } from '@/context/erp';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 import { useNavigate } from 'react-router-dom';
 
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
@@ -55,29 +55,6 @@ export default function DataTable({ config, extra = [], customFilters }) {
   const { erpContextAction } = useErpContext();
   const { modal } = erpContextAction;
   const { message } = App.useApp(); // Use App hook for message
-
-  const items = [
-    {
-      label: translate('Show'),
-      key: 'read',
-      icon: <EyeOutlined />,
-    },
-    {
-      label: translate('Edit'),
-      key: 'edit',
-      icon: <EditOutlined />,
-    },
-    ...extra,
-    {
-      type: 'divider',
-    },
-
-    {
-      label: translate('Delete'),
-      key: 'delete',
-      icon: <DeleteOutlined />,
-    },
-  ];
 
   const navigate = useNavigate();
 
@@ -135,35 +112,44 @@ export default function DataTable({ config, extra = [], customFilters }) {
     document.body.removeChild(link);
   };
 
-  dataTableColumns = [
+  // Build columns with actions
+  const columnsWithActions = [
     ...dataTableColumns,
     {
       title: '',
       key: 'action',
       fixed: 'right',
-      render: (_, record) => (
+      render: (_, record) => {
+        const items = [
+            {
+              label: translate('Show'),
+              key: 'read',
+              icon: <EyeOutlined />,
+              onClick: () => handleRead(record)
+            },
+            {
+              label: translate('Edit'),
+              key: 'edit',
+              icon: <EditOutlined />,
+              disabled: entity === 'booking' && record.paymentPlan?.some(p => (p.paidAmount || 0) > 0),
+              onClick: () => handleEdit(record)
+            },
+            ...extra,
+            {
+              type: 'divider',
+            },
+        
+            {
+              label: translate('Delete'),
+              key: 'delete',
+              icon: <DeleteOutlined />,
+              onClick: () => handleDelete(record)
+            },
+          ];
+        return (
         <Dropdown
           menu={{
             items,
-            onClick: ({ key }) => {
-              switch (key) {
-                case 'read':
-                  handleRead(record);
-                  break;
-                case 'edit':
-                  handleEdit(record);
-                  break;
-                case 'delete':
-                  handleDelete(record);
-                  break;
-                case 'recordPayment':
-                  handleRecordPayment(record);
-                  break;
-                default:
-                  break;
-              }
-              // else if (key === '2')handleCloseTask
-            },
           }}
           trigger={['click']}
         >
@@ -172,7 +158,7 @@ export default function DataTable({ config, extra = [], customFilters }) {
             onClick={(e) => e.preventDefault()}
           />
         </Dropdown>
-      ),
+      )},
     },
   ];
 
@@ -234,7 +220,7 @@ export default function DataTable({ config, extra = [], customFilters }) {
       ></PageHeader>
 
       <Table
-        columns={dataTableColumns}
+        columns={columnsWithActions}
         rowKey={(item) => item._id}
         dataSource={dataSource}
         pagination={pagination}

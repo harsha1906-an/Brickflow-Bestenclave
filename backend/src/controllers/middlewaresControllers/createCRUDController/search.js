@@ -14,8 +14,14 @@ const search = async (Model, req, res) => {
 
   const fields = { $or: [] };
 
+  // Escape regex special characters to prevent ReDoS
+  const escapeRegex = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+  const safeQuery = escapeRegex(req.query.q || '');
+
   for (const field of fieldsArray) {
-    fields.$or.push({ [field]: { $regex: new RegExp(req.query.q, 'i') } });
+    fields.$or.push({ [field]: { $regex: new RegExp(safeQuery, 'i') } });
   }
   // console.log(fields)
 

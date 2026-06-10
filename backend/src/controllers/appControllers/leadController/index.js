@@ -120,13 +120,14 @@ methods.convert = async (req, res) => {
             });
         }
 
-        // 2. Create Customer (Client) from Lead data
+        // 2. Create Customer (Client) from Lead data, merging custom fields from request body if present
         const clientData = {
             name: lead.name,
             phone: lead.phone,
             email: lead.email,
             address: '',
             country: '',
+            ...req.body,
             createdBy: req.admin._id,
             assigned: lead.assignedTo || req.admin._id,
         };

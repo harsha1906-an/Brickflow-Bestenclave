@@ -9,7 +9,7 @@ const { useMoney, useDate } = require('@/settings');
 
 const { getDailyReportData } = require('@/modules/LabourModule/reporting.service');
 
-const pugFiles = ['invoice', 'offer', 'quote', 'payment', 'inventoryreport', 'paymentrequest', 'bookingreceipt', 'expensevoucher', 'pettycashreport', 'customersummary', 'dailyexpensereport', 'customerdetails', 'supplierdetails', 'bookingdetails', 'labourlist', 'villareport', 'expensereport'];
+const pugFiles = ['invoice', 'offer', 'quote', 'payment', 'inventoryreport', 'paymentrequest', 'bookingreceipt', 'expensevoucher', 'pettycashreport', 'customersummary', 'dailyexpensereport', 'customerdetails', 'supplierdetails', 'bookingdetails', 'labourlist', 'villareport', 'expensereport', 'taxreport'];
 
 require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
@@ -62,12 +62,25 @@ exports.generatePdf = async (
       const path = require('path');
       settings.public_server_file = process.env.PUBLIC_SERVER_FILE;
 
-      const templatePath = path.resolve(__dirname, '../../pdf', modelName + '.pug');
-      console.log('Template Path Resolved:', templatePath);
+      const pdfDir = path.resolve(__dirname, '../../pdf');
+      const desiredFilename = modelName + '.pug';
+      
+      // Find template file with case-insensitive lookup for Linux compatibility
+      let templatePath = path.resolve(pdfDir, desiredFilename);
       if (!fs.existsSync(templatePath)) {
-        console.error('CRITICAL: Template file not found at:', templatePath);
-        throw new Error(`Template file not found: ${templatePath}`);
+        console.log(`Template not found at exact path: ${templatePath}, searching with case-insensitive lookup...`);
+        const files = fs.readdirSync(pdfDir);
+        const matchedFile = files.find(file => file.toLowerCase() === desiredFilename.toLowerCase());
+        if (matchedFile) {
+          templatePath = path.resolve(pdfDir, matchedFile);
+          console.log(`Found template with case-insensitive lookup: ${templatePath}`);
+        } else {
+          console.error('CRITICAL: Template file not found at:', templatePath);
+          console.error('Available files:', files);
+          throw new Error(`Template file not found: ${desiredFilename}`);
+        }
       }
+      console.log('Template Path Resolved:', templatePath);
 
       // Load Logo
       let logoBase64 = null;
@@ -106,7 +119,7 @@ exports.generatePdf = async (
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--single-process', // <- this one doesn't works in Windows
+          // '--single-process', // removed to fix windows support
           '--disable-gpu'
         ],
         ignoreDefaultArgs: ['--disable-extensions'],
@@ -114,7 +127,8 @@ exports.generatePdf = async (
 
       const page = await browser.newPage();
       await page.setContent(htmlContent, {
-        waitUntil: 'networkidle0',
+        waitUntil: 'load',
+        timeout: 60000
       });
       console.log('Page Content Set. Generating PDF Buffer...');
 
@@ -479,7 +493,7 @@ exports.downloadVillaReport = async (req, res) => {
       contractTotal += c.totalAmount || 0;
       if (c.milestones && Array.isArray(c.milestones)) {
         c.milestones.forEach(ms => {
-          if (ms.isCompleted) contractPaid += ms.netAmount || 0;
+          if (ms.isCompleted) contractPaid += ms.amount || 0;
         });
       }
     });
@@ -622,6 +636,123 @@ exports.downloadExpenseReport = async (req, res) => {
 
   } catch (error) {
     console.error('Error generating Expense Report PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate PDF',
+      error: error.message,
+    });
+  }
+};
+
+exports.downloadTaxReport = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const companyId = req.params.companyId;
+
+    console.log(`Generating Tax Report PDF for Company: ${companyId}`);
+
+    const Payment = mongoose.model('Payment');
+    const Expense = mongoose.model('Expense');
+
+    let filter = { removed: false };
+    if (companyId) filter.companyId = companyId;
+
+    if (startDate && endDate) {
+      filter.date = {
+        $gte: new Date(startDate),
+        $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+      };
+    }
+
+    const payments = await Payment.find(filter).populate('client').lean();
+    const expenses = await Expense.find(filter).populate('supplier').populate('labour').lean();
+
+    const allTransactions = [];
+
+    payments.forEach(p => {
+      allTransactions.push({
+        date: p.date,
+        ref: p.number || (p._id ? p._id.toString().slice(-6) : '-'),
+        entity: p.client ? p.client.name : 'Unknown Client',
+        description: `Income - Ref: ${p.ref || ''}`,
+        type: 'credit',
+        amount: parseFloat(p.amount) || 0
+      });
+    });
+
+    expenses.forEach(e => {
+        let entityName = 'Unknown';
+        if (e.recipientType === 'supplier' && e.supplier) entityName = e.supplier.name;
+        if (e.recipientType === 'labour' && e.labour) entityName = e.labour.name;
+
+      allTransactions.push({
+        date: e.date,
+        ref: e.number || (e._id ? e._id.toString().slice(-6) : '-'),
+        entity: entityName,
+        description: e.name || e.expenseCategory?.name || 'Expense',
+        type: 'debit',
+        amount: parseFloat(e.amount) || 0
+      });
+    });
+
+    allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const groupedMap = {};
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    allTransactions.forEach(trx => {
+      const dateStr = moment(trx.date).format('DD/MM/YYYY');
+      if (!groupedMap[dateStr]) {
+        groupedMap[dateStr] = {
+          dateStr,
+          transactions: [],
+          dailyCredit: 0,
+          dailyDebit: 0
+        };
+      }
+
+      groupedMap[dateStr].transactions.push(trx);
+      if (trx.type === 'credit') {
+        groupedMap[dateStr].dailyCredit += trx.amount;
+        totalIncome += trx.amount;
+      } else {
+        groupedMap[dateStr].dailyDebit += trx.amount;
+        totalExpense += trx.amount;
+      }
+    });
+
+    const groupedDays = Object.values(groupedMap);
+    const netProfit = totalIncome - totalExpense;
+
+    const data = {
+      groupedDays,
+      totalIncome,
+      totalExpense,
+      netProfit,
+      startDate: startDate ? moment(startDate).format('DD/MM/YYYY') : null,
+      endDate: endDate ? moment(endDate).format('DD/MM/YYYY') : null,
+    };
+
+    const rawPdf = await exports.generatePdf(
+      'taxreport',
+      { format: 'A4', landscape: false },
+      data
+    );
+    const pdfBuffer = Buffer.from(rawPdf);
+
+    const filename = `Tax_Report_${moment().format('YYYY-MM-DD')}.pdf`;
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('Error generating Tax Report PDF:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to generate PDF',

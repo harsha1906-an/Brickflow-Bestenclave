@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Button, Space, Input, Select, Modal, InputNumber, Form, DatePicker, Tooltip, Switch } from 'antd';
-import { PlusOutlined, SearchOutlined, HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined, WarningOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, HistoryOutlined, ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { request } from '@/request';
 import { API_BASE_URL } from '@/config/serverApiConfig';
 import { message } from '@/utils/antdGlobal';
@@ -20,6 +20,7 @@ export default function InventoryList() {
     const [isMaterialModalOpen, setIsMaterialModalOpen] = useState(false);
     const [stockModal, setStockModal] = useState({ open: false, type: null, material: null });
     const [historyModal, setHistoryModal] = useState({ open: false, material: null, data: [] });
+    const [editModal, setEditModal] = useState({ open: false, material: null });
 
     const { role } = useUserRole();
     const canEdit = role === 'OWNER' || role === 'ENGINEER'; // Engineers need to issue stock
@@ -140,6 +141,9 @@ export default function InventoryList() {
                             <Tooltip title="Issue Stock (Outward)">
                                 <Button size="small" icon={<ArrowUpOutlined style={{ color: 'red' }} />} onClick={() => openStockModal('outward', r)} />
                             </Tooltip>
+                            <Tooltip title="Edit Material">
+                                <Button size="small" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => openEditModal(r)} />
+                            </Tooltip>
                         </>
                     )}
                     <Tooltip title="View History">
@@ -154,6 +158,10 @@ export default function InventoryList() {
         setStockModal({ open: true, type, material });
     };
 
+    const openEditModal = (material) => {
+        setEditModal({ open: true, material });
+    };
+
     const openHistory = async (material) => {
         try {
             const data = await request.get({ entity: `material/history/${material._id}` });
@@ -161,6 +169,59 @@ export default function InventoryList() {
                 setHistoryModal({ open: true, material, data: data.result });
             }
         } catch (e) { message.error('Failed to view history'); }
+    };
+
+    const handleDelete = (record) => {
+        if (record.hasPayment) {
+            Modal.warning({
+                title: 'Action Blocked',
+                content: (
+                    <div style={{ marginTop: 12 }}>
+                        <p style={{ fontSize: '15px', color: '#555', lineHeight: '1.5' }}>
+                            This stock entry cannot be deleted or undone because a payment has already been completed for it.
+                        </p>
+                        <p style={{ fontSize: '14px', color: '#888', marginTop: 8, lineHeight: '1.4' }}>
+                            To modify or delete this entry, please remove or edit the corresponding supplier payment in the expenses section first.
+                        </p>
+                    </div>
+                ),
+                okText: 'OK',
+            });
+            return;
+        }
+
+        Modal.confirm({
+            title: 'Undo Transaction',
+            content: 'Are you sure you want to undo and delete this transaction? This will revert the stock level changes.',
+            okText: 'Yes, Undo',
+            okType: 'danger',
+            cancelText: 'No',
+            onOk: async () => {
+                try {
+                    const res = await request.delete({ entity: 'material/transaction', id: record._id });
+                    if (res.success) {
+                        message.success('Transaction undone successfully');
+                        fetchData();
+                        if (historyModal.material) {
+                            openHistory(historyModal.material);
+                        }
+                    } else {
+                        Modal.error({
+                            title: 'Cannot Delete Transaction',
+                            content: res.message || 'Payment has already been made for this stock transaction.',
+                            okText: 'Close'
+                        });
+                    }
+                } catch (err) {
+                    const errMsg = err.response?.data?.message || 'Payment has already been made for this stock transaction.';
+                    Modal.error({
+                        title: 'Cannot Delete Transaction',
+                        content: errMsg,
+                        okText: 'Close'
+                    });
+                }
+            }
+        });
     };
 
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -209,6 +270,16 @@ export default function InventoryList() {
                 />
             )}
 
+            {/* Edit Material Modal */}
+            {editModal.open && (
+                <EditMaterialModal
+                    open={editModal.open}
+                    material={editModal.material}
+                    onCancel={() => setEditModal({ open: false, material: null })}
+                    onSuccess={() => { setEditModal({ open: false, material: null }); fetchData(); }}
+                />
+            )}
+
             {/* Stock Adjustment Modal */}
             {stockModal.open && (
                 <StockAdjustmentModal
@@ -223,8 +294,8 @@ export default function InventoryList() {
             )}
 
             {/* History Modal */}
-            <Modal title={`History: ${historyModal.material?.name}`} open={historyModal.open} onCancel={() => setHistoryModal({ open: false, material: null, data: [] })} footer={null} width={900}>
-                <HistoryTable data={historyModal.data} material={historyModal.material} />
+            <Modal title={`History: ${historyModal.material?.name}`} open={historyModal.open} onCancel={() => setHistoryModal({ open: false, material: null, data: [] })} footer={null} width={1000}>
+                <HistoryTable data={historyModal.data} material={historyModal.material} canEdit={canEdit} onDelete={handleDelete} />
             </Modal>
 
             <ReportModal
@@ -250,6 +321,41 @@ function CreateMaterialModal({ open, onCancel, onSuccess }) {
     return (
         <Modal title="Add New Material" open={open} onCancel={onCancel} onOk={handleSubmit}>
             <Form form={form} layout="vertical"><MaterialForm /></Form>
+        </Modal>
+    );
+}
+
+function EditMaterialModal({ open, onCancel, onSuccess, material }) {
+    const [form] = Form.useForm();
+
+    useEffect(() => {
+        if (open && material) {
+            form.setFieldsValue({
+                name: material.name,
+                category: material.category,
+                unit: material.unit,
+                reorderLevel: material.reorderLevel,
+                description: material.description,
+            });
+        }
+    }, [open, material, form]);
+
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            await request.update({ entity: 'material', id: material._id, jsonData: values });
+            message.success('Material updated successfully');
+            onSuccess();
+        } catch (e) {
+            message.error('Failed to update material');
+        }
+    };
+
+    return (
+        <Modal title={`Edit Material: ${material?.name}`} open={open} onCancel={onCancel} onOk={handleSubmit}>
+            <Form form={form} layout="vertical">
+                <MaterialForm isUpdateForm={true} />
+            </Form>
         </Modal>
     );
 }
@@ -295,6 +401,7 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                 jsonData: {
                     ...values,
                     type: finalType,
+                    isDirect: directToVilla,
                     totalCost,
                     date: values.date.format('YYYY-MM-DD')
                 }
@@ -354,11 +461,11 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         <InputNumber style={{ width: '100%' }} min={0.01} />
                     </Form.Item>
 
-                    {/* Pricing Fields - Only for Global Stock Inward (not villa transfers) */}
+                    {/* Pricing Fields - Only for Purchases (Global or Direct Villa) */}
                     <Form.Item noStyle shouldUpdate={(prev, curr) => prev.villa !== curr.villa}>
                         {({ getFieldValue }) => {
                             const villaSelected = selectedVilla || getFieldValue('villa');
-                            const showPricing = isInward && !villaSelected && !directToVilla;
+                            const showPricing = isInward && (!villaSelected || directToVilla);
                             return showPricing ? (
                                 <>
                                     <Form.Item
@@ -383,6 +490,12 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                     </Form.Item>
 
                     {/* Villa Selection with Toggle */}
+                    {isInward && (
+                        <Form.Item label="Direct to Villa?">
+                            <Switch checked={directToVilla} onChange={setDirectToVilla} />
+                        </Form.Item>
+                    )}
+
                     {selectedVilla ? (
                         <div style={{ marginBottom: 24 }}>
                             <span style={{ color: 'gray' }}>Assigning to: </span>
@@ -391,12 +504,6 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         </div>
                     ) : (
                         <>
-                            {isInward && (
-                                <Form.Item label="Direct to Villa?">
-                                    <Switch checked={directToVilla} onChange={setDirectToVilla} />
-                                </Form.Item>
-                            )}
-
                             {(directToVilla || !isInward) && (
                                 <Form.Item
                                     name="villa"
@@ -411,7 +518,7 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         </>
                     )}
 
-                    {/* Show Supplier only if NOT assigning to a Villa (i.e. adding to Global Stock) */}
+                    {/* Show Supplier only if it's a purchase (Global or Direct Villa) */}
                     {isInward && (
                         <Form.Item
                             noStyle
@@ -419,7 +526,8 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         >
                             {({ getFieldValue }) => {
                                 const villaSelected = selectedVilla || getFieldValue('villa');
-                                return !villaSelected ? (
+                                const showSupplier = !villaSelected || directToVilla;
+                                return showSupplier ? (
                                     <Form.Item name="supplier" label="Supplier">
                                         <Select placeholder="Select Supplier" allowClear showSearch optionFilterProp="children">
                                             {suppliers?.map(s => <Select.Option key={s._id} value={s._id}>{s.name}</Select.Option>)}
@@ -446,7 +554,7 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         </>
                     )}
 
-                    {/* Vehicle Number - Only for Global Stock Inward */}
+                    {/* Vehicle Number - Only for Purchases (Global or Direct Villa) */}
                     {isInward && (
                         <Form.Item
                             noStyle
@@ -454,7 +562,8 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                         >
                             {({ getFieldValue }) => {
                                 const villaSelected = selectedVilla || getFieldValue('villa');
-                                return !villaSelected ? (
+                                const showVehicle = !villaSelected || directToVilla;
+                                return showVehicle ? (
                                     <Form.Item name="vehicleNumber" label="Vehicle Number">
                                         <Input placeholder="Enter Vehicle Number" />
                                     </Form.Item>
@@ -544,7 +653,7 @@ function ReportModal({ open, onCancel, villas }) {
 }
 
 // History Table Component with Pricing
-function HistoryTable({ data, material }) {
+function HistoryTable({ data, material, canEdit, onDelete }) {
     const { moneyFormatter } = useMoney();
 
     return (
@@ -564,7 +673,23 @@ function HistoryTable({ data, material }) {
                 { title: 'Project', dataIndex: 'project', width: 120, render: p => p?.name || '-' },
                 { title: 'Usage', dataIndex: 'usageCategory', width: 110, render: u => u ? <Tag size="small">{u?.replace('_', ' ')}</Tag> : '-' },
                 { title: 'Issued By', dataIndex: 'issuedBy', width: 100, render: val => val || '-' },
-                { title: 'Ref/Notes', key: 'notes', width: 120, render: (_, r) => <Tooltip title={r.notes}>{r.reference || '-'}</Tooltip> }
+                { title: 'Ref/Notes', key: 'notes', width: 120, render: (_, r) => <Tooltip title={r.notes}>{r.reference || '-'}</Tooltip> },
+                ...(canEdit ? [{
+                    title: 'Action',
+                    key: 'action',
+                    fixed: 'right',
+                    width: 80,
+                    render: (_, record) => (
+                        <Tooltip title="Undo / Delete Transaction">
+                            <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => onDelete(record)}
+                            />
+                        </Tooltip>
+                    )
+                }] : [])
             ]}
         />
     );
@@ -573,31 +698,25 @@ function HistoryTable({ data, material }) {
 // Price Display Component with auto-calculation
 function FormPriceDisplay({ material, form }) {
     const { moneyFormatter } = useMoney();
-    const [totalCost, setTotalCost] = useState(0);
-
-    const handleChange = () => {
-        const values = form.getFieldsValue(['quantity', 'ratePerUnit']);
-        if (values.quantity && values.ratePerUnit) {
-            setTotalCost(values.quantity * values.ratePerUnit);
-        } else {
-            setTotalCost(0);
-        }
-    };
 
     return (
-        <div style={{ marginBottom: 16, padding: 12, border: '1px dashed #d9d9d9', borderRadius: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 500 }}>Total Cost:</span>
-                <span style={{ fontSize: 18, fontWeight: 'bold', color: '#1890ff' }}>
-                    {totalCost > 0 ? moneyFormatter({ amount: totalCost }) : '-'}
-                </span>
-            </div>
-            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.quantity !== curr.quantity || prev.ratePerUnit !== curr.ratePerUnit}>
-                {() => {
-                    handleChange();
-                    return null;
-                }}
-            </Form.Item>
-        </div>
+        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.quantity !== curr.quantity || prev.ratePerUnit !== curr.ratePerUnit}>
+            {() => {
+                const quantity = form.getFieldValue('quantity');
+                const ratePerUnit = form.getFieldValue('ratePerUnit');
+                const totalCost = (quantity && ratePerUnit) ? quantity * ratePerUnit : 0;
+
+                return (
+                    <div style={{ marginBottom: 16, padding: 12, border: '1px dashed #d9d9d9', borderRadius: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 500 }}>Total Cost:</span>
+                            <span style={{ fontSize: 18, fontWeight: 'bold', color: '#1890ff' }}>
+                                {totalCost > 0 ? moneyFormatter({ amount: totalCost }) : '-'}
+                            </span>
+                        </div>
+                    </div>
+                );
+            }}
+        </Form.Item>
     );
 }

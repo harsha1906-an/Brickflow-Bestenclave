@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useProfileContext } from '@/context/profileContext';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 import { EditOutlined, LockOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Avatar, Button, Col, Descriptions, Divider, Row } from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';

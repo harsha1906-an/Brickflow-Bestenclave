@@ -1,12 +1,20 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { generate: uniqueId } = require('shortid');
+const { nanoid: uniqueId } = require('nanoid');
 
 const updatePassword = async (userModel, req, res) => {
   const UserPassword = mongoose.model(userModel + 'Password');
 
   const reqUserName = userModel.toLowerCase();
   const userProfile = req[reqUserName];
+
+  if (userProfile.role !== 'owner') {
+    return res.status(403).json({
+      success: false,
+      result: null,
+      message: 'Forbidden: Only users with the owner role can update administrative passwords.',
+    });
+  }
 
   let { password } = req.body;
 

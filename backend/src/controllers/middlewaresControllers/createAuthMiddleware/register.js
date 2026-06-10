@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const mongoose = require('mongoose');
-const { generate: uniqueId } = require('shortid');
+const { nanoid: uniqueId } = require('nanoid');
 
 const register = async (req, res, { userModel }) => {
   const UserPasswordModel = mongoose.model(userModel + 'Password');

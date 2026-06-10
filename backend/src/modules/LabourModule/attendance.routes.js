@@ -1,12 +1,13 @@
 const express = require('express');
 const Attendance = require('../../models/appModels/Attendance');
 const Labour = require('../../models/appModels/Labour');
+const checkRbac = require('@/middlewares/rbacMiddleware');
 
 const router = express.Router({ mergeParams: true });
 const { logAuditAction } = require('../AuditLogModule');
 
 // List attendance for a company (optionally filter by labourId or date)
-router.get('/', async (req, res) => {
+router.get('/', checkRbac('attendance', 'read'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const { labourId, date } = req.query;
@@ -21,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // Mark attendance
-router.post('/', async (req, res) => {
+router.post('/', checkRbac('attendance', 'create'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const { labourId, date, status, otHours, advanceDeduction, penalty, miscWorkDescription } = req.body;
@@ -72,7 +73,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update attendance
-router.put('/:attendanceId', async (req, res) => {
+router.put('/:attendanceId', checkRbac('attendance', 'update'), async (req, res) => {
   try {
     const { companyId, attendanceId } = req.params;
     const update = req.body;
@@ -114,7 +115,7 @@ router.put('/:attendanceId', async (req, res) => {
 });
 
 // Delete attendance
-router.delete('/:attendanceId', async (req, res) => {
+router.delete('/:attendanceId', checkRbac('attendance', 'delete'), async (req, res) => {
   try {
     const { companyId, attendanceId } = req.params;
     const result = await Attendance.deleteOne({ _id: attendanceId, companyId });

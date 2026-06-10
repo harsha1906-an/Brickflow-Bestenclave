@@ -164,6 +164,16 @@ const VillaDetail = () => {
                 <Descriptions.Item label="Total Amount">
                   <strong>{villa.totalAmount?.toLocaleString()}</strong>
                 </Descriptions.Item>
+                {villa.status === 'booked' && villa.booking && (
+                  <>
+                    <Descriptions.Item label="Customer Name" span={2}>
+                      <b style={{ color: '#1890ff' }}>{villa.booking.client?.name}</b>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Customer Phone">
+                      {villa.booking.client?.phone}
+                    </Descriptions.Item>
+                  </>
+                )}
               </Descriptions>
             ) : (
               <span>No villa data found.</span>
@@ -171,7 +181,10 @@ const VillaDetail = () => {
           </Card>
         </Col>
         <Col span={24}>
-          <VillaProgressSection companyId={villa?.companyId || companyId} villaId={villaId} />
+          <VillaProgressSection
+            companyId={villa?.companyId?._id || villa?.companyId || companyId}
+            villaId={villaId}
+          />
         </Col>
       </Row>
     </div>

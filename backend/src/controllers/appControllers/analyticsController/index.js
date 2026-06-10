@@ -129,15 +129,20 @@ const getMonthlySummary = async (req, res) => {
             }];
 
         } else {
-            // For month view, show daily data for the current month
-            const startOfMonth = moment().startOf('month').toDate();
-            const endOfMonth = moment().endOf('month').toDate();
-            const daysInMonth = moment().daysInMonth();
+            // For month/prev_month view, show daily data
+            let targetMonth = moment();
+            if (range === 'prev_month') {
+                targetMonth = moment().subtract(1, 'months');
+            }
 
-            console.log('Month range:', startOfMonth, 'to', endOfMonth, `(${daysInMonth} days)`);
+            const startOfMonth = targetMonth.clone().startOf('month').toDate();
+            const endOfMonth = targetMonth.clone().endOf('month').toDate();
+            const daysInMonth = targetMonth.daysInMonth();
+
+            console.log(`${range} range:`, startOfMonth, 'to', endOfMonth, `(${daysInMonth} days)`);
 
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayDate = moment().date(day);
+                const dayDate = targetMonth.clone().date(day);
                 const startOfDay = dayDate.clone().startOf('day').toDate();
                 const endOfDay = dayDate.clone().endOf('day').toDate();
 
@@ -243,7 +248,7 @@ const getMonthlySummary = async (req, res) => {
             console.log(`Total Income: ${totalIncome}, Total Expense: ${totalExpense}`);
         }
 
-        const rangeLabel = range === 'today' ? 'today' : 'this month';
+        const rangeLabel = range === 'today' ? 'today' : (range === 'prev_month' ? 'previous month' : 'this month');
         console.log('=== Returning Result ===');
         console.log('Data points:', monthlyData.length);
 

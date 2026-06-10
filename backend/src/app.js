@@ -2,6 +2,9 @@ const express = require('express');
 
 const cors = require('cors');
 const compression = require('compression');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
 const cookieParser = require('cookie-parser');
 
@@ -23,14 +26,21 @@ const reportingApiRouter = require('./routes/appRoutes/reportingApi');
 const bookingApiRouter = require('./routes/appRoutes/bookingApi');
 const chatApiRouter = require('./routes/appRoutes/chatRoutes');
 const analyticsApiRouter = require('./routes/appRoutes/analyticsApi');
+const whatsappApiRouter = require('./routes/appRoutes/whatsappRoutes');
+const cronController = require('@/controllers/appControllers/cronController');
 
-const fileUpload = require('express-fileupload');
 // create our Express app
 const app = express();
 
+// Trust proxy if we're behind a reverse proxy (e.g. AWS ALB, Nginx)
+app.set('trust proxy', 1);
+
+// Set security HTTP headers
+app.use(helmet());
+
 app.use(
   cors({
-    origin: true,
+    origin: process.env.CORS_ORIGIN === 'true' ? true : (process.env.CORS_ORIGIN || true),
     credentials: true,
   })
 );
@@ -38,6 +48,12 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+app.use(xss());
 
 app.use(compression());
 
@@ -48,6 +64,29 @@ app.use((req, res, next) => {
   }
   console.log('Incoming Request:', req.method, req.url);
   next();
+});
+
+// Manual Cron Trigger (PUBLIC for testing)
+// WARNING: Remove or secure with a secret key in production
+app.get('/api/cron/daily-summary', async (req, res) => {
+  try {
+    const { email, secret } = req.query;
+
+    if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden: Invalid or missing cron secret key.',
+      });
+    }
+
+    await cronController.runDailySummary(email);
+    return res.status(200).json({
+      success: true,
+      message: `Daily summary triggered manually${email ? ' to ' + email : ''}`,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // Here our API Routes
@@ -63,6 +102,7 @@ app.use('/api', adminAuth.isValidAuthToken, reportingApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, bookingApiRouter);
 app.use('/api/chat', adminAuth.isValidAuthToken, chatApiRouter);
 app.use('/api/analytics', adminAuth.isValidAuthToken, analyticsApiRouter);
+app.use('/api/whatsapp', adminAuth.isValidAuthToken, whatsappApiRouter);
 app.use('/download', adminAuth.isValidAuthToken, coreDownloadRouter);
 app.use('/public', corePublicRouter);
 

@@ -17,6 +17,7 @@ import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import RecentTable from './components/RecentTable';
 import InventoryAnalytics from './components/InventoryAnalytics';
 import VillaProgressList from './components/VillaProgressList';
+import VillaFinancialsList from './components/VillaFinancialsList';
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
@@ -33,7 +34,6 @@ export default function DashboardModule() {
   // Default config if none exists
   const defaultConfig = {
     chart: true,
-    quoteSummary: true,
     paymentSummary: true,
     dailyCost: true,
     statisticCards: true,
@@ -41,7 +41,19 @@ export default function DashboardModule() {
     recentQuotes: true,
   };
 
-  const config = currentAdmin?.dashboardConfig ? { ...defaultConfig, ...currentAdmin.dashboardConfig } : defaultConfig;
+  const isEngineer = currentAdmin?.role === 'engineer';
+  let config = currentAdmin?.dashboardConfig ? { ...defaultConfig, ...currentAdmin.dashboardConfig } : defaultConfig;
+
+  if (isEngineer) {
+    config = {
+      ...config,
+      chart: false,
+      paymentSummary: false,
+      dailyCost: false,
+      customerPreview: false,
+      recentQuotes: false,
+    };
+  }
 
   const getStatsData = async ({ entity, currency }) => {
     return await request.summary({
@@ -55,8 +67,6 @@ export default function DashboardModule() {
     isLoading: invoiceLoading,
     onFetch: fetchInvoicesStats,
   } = useOnFetch();
-
-  const { result: quoteResult, isLoading: quoteLoading, onFetch: fetchQuotesStats } = useOnFetch();
 
   const {
     result: paymentResult,
@@ -87,7 +97,7 @@ export default function DashboardModule() {
       const fetchData = async () => {
         setAnalyticsLoading(true);
         try {
-          const rangeParam = dateRange === 'today' ? 'range=today' : 'range=month';
+          const rangeParam = dateRange === 'today' ? 'range=today' : (dateRange === 'prev_month' ? 'range=prev_month' : 'range=month');
           const response = await request.get({ entity: `analytics/monthly-summary?${rangeParam}` });
           console.log('Analytics Response:', response);
           // Extract the result array from the response
@@ -105,14 +115,21 @@ export default function DashboardModule() {
     }
   }, [config.chart, dateRange]);
 
-  // Fetch villa progress data
   useEffect(() => {
     const fetchVillaProgress = async () => {
       setVillasLoading(true);
       try {
         console.log('=== VILLA PROGRESS DEBUG ===');
-        console.log('CompanyId:', companyId);
-        const endpoint = `companies/${companyId}/villas/progress-summary?companyId=${companyId}`;
+        console.log('Current CompanyId from state:', companyId);
+        
+        // Ensure companyId is valid before making request
+        if (!companyId) {
+            console.error('No companyId found, cannot fetch villa progress');
+            setVillasLoading(false);
+            return;
+        }
+
+        const endpoint = `companies/${companyId}/villas/progress-summary`;
         console.log('Calling endpoint:', endpoint);
 
         const response = await request.get({
@@ -120,10 +137,7 @@ export default function DashboardModule() {
         });
 
         console.log('Villa Progress Full Response:', response);
-        console.log('Response success:', response?.success);
-        console.log('Response result:', response?.result);
-        console.log('Result length:', response?.result?.length);
-
+        
         if (response && response.result) {
           console.log('Setting villas:', response.result);
           setVillasProgress(response.result);
@@ -134,20 +148,14 @@ export default function DashboardModule() {
       } catch (error) {
         console.error('=== VILLA PROGRESS ERROR ===');
         console.error('Error details:', error);
-        console.error('Error message:', error.message);
-        console.error('Error response:', error.response);
         setVillasProgress([]);
       } finally {
         setVillasLoading(false);
-        console.log('=== VILLA PROGRESS FETCH COMPLETE ===');
       }
     };
 
     if (companyId) {
-      console.log('CompanyId exists, fetching villa progress...');
       fetchVillaProgress();
-    } else {
-      console.warn('No companyId available, skipping villa progress fetch');
     }
   }, [companyId]);
 
@@ -170,10 +178,9 @@ export default function DashboardModule() {
     const currency = money_format_settings.default_currency_code || null;
 
     if (currency) {
-      if (config.quoteSummary) fetchQuotesStats(getStatsData({ entity: 'quote', currency }));
       if (config.paymentSummary) fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
     }
-  }, [money_format_settings.default_currency_code, config.quoteSummary, config.paymentSummary]);
+  }, [money_format_settings.default_currency_code, config.paymentSummary]);
 
   const dataTableColumns = [
     {
@@ -205,35 +212,7 @@ export default function DashboardModule() {
     },
   ];
 
-  const entityData = [
-    {
-      result: quoteResult,
-      isLoading: quoteLoading,
-      entity: 'quote',
-      title: translate('quote'),
-    },
-  ];
 
-  const statisticCards = entityData.map((data, index) => {
-    const { result, entity, isLoading, title } = data;
-
-    return (
-      <PreviewCard
-        key={index}
-        title={title}
-        isLoading={isLoading}
-        entity={entity}
-        statistics={
-          !isLoading &&
-          result?.performance?.map((item) => ({
-            tag: item?.status,
-            color: 'blue',
-            value: item?.percentage,
-          }))
-        }
-      />
-    );
-  });
 
   // Skeleton card component
   const SummaryCardSkeleton = () => (
@@ -274,6 +253,7 @@ export default function DashboardModule() {
             <Radio.Group value={dateRange} onChange={(e) => setDateRange(e.target.value)} buttonStyle="solid">
               <Radio.Button value="today">{translate('Today')}</Radio.Button>
               <Radio.Button value="month">{translate('This Month')}</Radio.Button>
+              <Radio.Button value="prev_month">{translate('Previous Month')}</Radio.Button>
             </Radio.Group>
           </Space>
           <Button icon={<SettingOutlined />} onClick={() => setShowSettings(true)}>
@@ -294,25 +274,12 @@ export default function DashboardModule() {
         )}
 
         <Row gutter={gutterSize}>
-          {config.quoteSummary && (
-            quoteLoading ? (
-              <SummaryCardSkeleton />
-            ) : (
-              <SummaryCard
-                title={translate('Quote')}
-                prefix={translate('This month')}
-                isLoading={quoteLoading}
-                data={quoteResult?.total}
-              />
-            )
-          )}
-
           {config.paymentSummary && (
             paymentLoading ? (
               <SummaryCardSkeleton />
             ) : (
               <SummaryCard
-                title={translate('paid')}
+                title={'Income'}
                 prefix={translate('This month')}
                 isLoading={paymentLoading}
                 data={paymentResult?.total}
@@ -335,7 +302,7 @@ export default function DashboardModule() {
         </Row>
         <div className="space30"></div>
         <Row gutter={gutterSize}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: isEngineer ? 24 : 12 }} lg={{ span: isEngineer ? 24 : 12 }}>
             {villasLoading ? (
               <TableSkeleton />
             ) : (
@@ -355,6 +322,36 @@ export default function DashboardModule() {
               </div>
             )}
           </Col>
+          
+          {!isEngineer && (
+            <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 12 }} lg={{ span: 12 }}>
+               {villasLoading ? (
+                <TableSkeleton />
+              ) : (
+                <div className="whiteBox shadow" style={{ minHeight: 458, maxHeight: 600, overflowY: 'auto' }}>
+                  <div className="pad20">
+                    <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+                      Villa Expenses & Income
+                    </h3>
+                     <VillaFinancialsList villas={villasProgress} isLoading={villasLoading} />
+                  </div>
+                </div>
+              )}
+            </Col>
+          )}
+
+        </Row>
+        <div className="space30"></div>
+        
+        <Row gutter={gutterSize}>
+        <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+              <h3 style={{ marginBottom: 5, padding: '0 20px 20px' }}>
+                {translate('Inventory Analytics')}
+              </h3>
+              {config.recentQuotes && <InventoryAnalytics />}
+            </div>
+          </Col>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
             {config.customerPreview && (
               clientLoading ? (
@@ -367,17 +364,6 @@ export default function DashboardModule() {
                 />
               )
             )}
-          </Col>
-        </Row>
-        <div className="space30"></div>
-        <Row gutter={gutterSize}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 24 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Inventory Analytics')}
-              </h3>
-              {config.recentQuotes && <InventoryAnalytics />}
-            </div>
           </Col>
         </Row>
 

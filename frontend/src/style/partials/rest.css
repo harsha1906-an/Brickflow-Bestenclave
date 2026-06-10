@@ -13,6 +13,8 @@
   font-family: 'Nunito', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   font-weight: 700;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 body {
@@ -32,21 +34,20 @@ body.light-theme {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 0px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f0f2f5;
+  display: none;
 }
 
 .dark-theme ::-webkit-scrollbar-track {
-  background: #0c0d0e;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 5px;
-  border: 2px solid #f0f2f5;
+  display: none;
 }
 
 .dark-theme ::-webkit-scrollbar-thumb {

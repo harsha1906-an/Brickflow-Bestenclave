@@ -1,5 +1,5 @@
 import { Select, Tag } from 'antd';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 export default function SelectTag({ options, defaultValue }) {
   return (

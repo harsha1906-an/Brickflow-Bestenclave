@@ -12,7 +12,7 @@ import { erp } from '@/redux/erp/actions';
 import { selectCreatedItem } from '@/redux/erp/selectors';
 
 import calculate from '@/utils/calculate';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 import Loading from '@/components/Loading';
 import {

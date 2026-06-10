@@ -157,4 +157,55 @@ methods.list = async (req, res) => {
     }
 };
 
+methods.delete = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // 1. Soft Delete the Expense
+        const expense = await Expense.findByIdAndUpdate(
+            id,
+            { removed: true },
+            { new: true }
+        );
+
+        if (!expense) {
+            return res.status(404).json({ success: false, message: 'Expense not found' });
+        }
+
+        // 2. Find linked Labour Contract Milestone and Reset it
+        const contract = await LabourContract.findOne({ 'milestones.expenseId': id });
+
+        if (contract) {
+            const milestoneIndex = contract.milestones.findIndex(m => m.expenseId && m.expenseId.toString() === id);
+            
+            if (milestoneIndex !== -1) {
+                contract.milestones[milestoneIndex].isCompleted = false;
+                contract.milestones[milestoneIndex].expenseId = null;
+                contract.milestones[milestoneIndex].netAmount = 0;
+                contract.milestones[milestoneIndex].advanceDeduction = 0;
+                contract.milestones[milestoneIndex].penalty = 0;
+                contract.milestones[milestoneIndex].completionDate = null;
+                contract.milestones[milestoneIndex].paymentMode = null;
+                contract.milestones[milestoneIndex].reference = null;
+                
+                await contract.save();
+                console.log(`Unlinked Expense ${id} from LabourContract ${contract._id} milestone`);
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Expense deleted and unlinked successfully',
+            result: expense
+        });
+
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error deleting expense',
+            error: error.message
+        });
+    }
+};
+
 module.exports = methods;

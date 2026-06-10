@@ -93,17 +93,27 @@ const runDailySummary = async (manualRecipient = null) => {
 
         console.log(`Found ${invLogs.length} inventory transactions and ${receipts.length} receipts`);
 
+const nodemailer = require('nodemailer');
+        
         // 5. Get Recipient (Manual override or First Owner)
         const admin = await Admin.findOne({ role: 'owner', removed: false });
-        const recipientEmail = manualRecipient || (admin ? admin.email : process.env.ADMIN_EMAIL);
+        let recipientEmail = manualRecipient;
+        
+        if (!recipientEmail) {
+            // Use .env ADMIN_EMAIL explicitly if the DB admin email is the default dummy one
+            if (admin && admin.email !== 'admin@admin.com') {
+                recipientEmail = admin.email;
+            } else {
+                recipientEmail = process.env.ADMIN_EMAIL;
+            }
+        }
 
-        if (!recipientEmail || !process.env.RESEND_API) {
-            console.error('Missing email configuration (RESEND_API or recipient email)');
+        if (!recipientEmail || recipientEmail === 'your_actual_email@example.com' || !process.env.EMAIL_USER) {
+            console.error('Missing email configuration: Please set a valid EMAIL_USER, EMAIL_PASSWORD, and ADMIN_EMAIL in backend/.env.');
             return;
         }
 
-        // 6. Send Email
-        const resend = new Resend(process.env.RESEND_API);
+        // 6. Send Email using Nodemailer
         const htmlContent = dailySummary({
             income: totalIncome,
             officialIncome,
@@ -120,31 +130,46 @@ const runDailySummary = async (manualRecipient = null) => {
             date: moment().utcOffset('+05:30').format('DD/MM/YYYY')
         });
 
-        const { data, error } = await resend.emails.send({
-            from: 'BrickFlow <onboarding@resend.dev>',
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
+
+        const mailOptions = {
+            from: `"BrickFlow ERP" <${process.env.EMAIL_USER}>`,
             to: recipientEmail,
             subject: `Daily Summary - ${moment().utcOffset('+05:30').format('DD/MM/YYYY')}`,
             html: htmlContent
-        });
+        };
 
-        if (error) {
-            console.error('Failed to send daily summary:', error);
-        } else {
-            console.log('Daily summary sent successfully:', data.id);
-        }
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Failed to send daily summary:', error);
+            } else {
+                console.log('Daily summary sent successfully:', info.messageId);
+            }
+        });
 
     } catch (err) {
         console.error('Error in Daily Summary Cron:', err);
     }
 };
 
-// Schedule: 8:00 PM every day
+// Schedule: 8:00 PM every day (IST)
 const initCron = () => {
     // 0 20 * * * = 8:00 PM
+    // Use timezone: "Asia/Kolkata" to force IST execution
     cron.schedule('0 20 * * *', () => {
+        console.log(`[CRON] Triggering Daily Summary at ${new Date().toISOString()}`);
         runDailySummary();
+    }, {
+        scheduled: true,
+        timezone: "Asia/Kolkata"
     });
-    console.log('Daily Summary Cron Scheduled for 8:00 PM');
+    console.log('Daily Summary Cron Scheduled for 8:00 PM IST (Asia/Kolkata)');
 };
 
 module.exports = {

@@ -14,7 +14,7 @@ import useLanguage from '@/locale/useLanguage';
 import logo from '@/style/images/logo.png';
 import useResponsive from '@/hooks/useResponsive';
 
-import InstallApp from '@/components/InstallApp';
+// Deleted InstallApp code for clarity
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function HeaderContent() {
@@ -101,7 +101,7 @@ export default function HeaderContent() {
       }}
     >
       <div style={{ position: 'absolute', right: isMobile ? '60px' : '170px' }}>
-        <InstallApp />
+{/* Deleted usage */}
       </div>
       {!isMobile && (
         <div style={{ position: 'absolute', right: '110px' }}>

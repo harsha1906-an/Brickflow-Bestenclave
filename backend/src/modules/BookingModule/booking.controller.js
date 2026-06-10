@@ -1,5 +1,7 @@
 const Booking = require('../../models/appModels/Booking');
 const Villa = require('../../models/appModels/Villa');
+const Client = require('../../models/appModels/Client');
+const whatsappService = require('../../services/whatsappService');
 
 const create = async (req, res) => {
     const bookingData = req.body;
@@ -35,6 +37,19 @@ const create = async (req, res) => {
         // 3. Update Villa Status
         villa.status = 'booked';
         await villa.save();
+
+        // Send WhatsApp Notification
+        try {
+            const client = await Client.findOne({ _id: bookingData.client, removed: false });
+            if (client && client.phone) {
+                await whatsappService.sendTemplate(client.phone, 'booking_successful', 'en_US', [
+                    { type: 'text', text: villa.name || 'Villa' },
+                    { type: 'text', text: booking._id.toString() }
+                ]);
+            }
+        } catch (err) {
+            console.error('Failed to send WhatsApp notification:', err);
+        }
 
         return res.status(200).json({ success: true, result: booking, message: 'Booking created successfully' });
     } catch (error) {

@@ -1,6 +1,6 @@
 const { passwordVerfication } = require('@/emailTemplate/emailVerfication');
 
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
 const sendMail = async ({
   email,
@@ -11,16 +11,28 @@ const sendMail = async ({
   type = 'emailVerfication',
   emailToken,
 }) => {
-  const resend = new Resend(process.env.RESEND_API);
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
 
-  const { data } = await resend.emails.send({
-    from: brickflow_app_email,
+  const mailOptions = {
+    from: `"BrickFlow ERP" <${process.env.EMAIL_USER}>`,
     to: email,
     subject,
     html: passwordVerfication({ name, link }),
-  });
+  };
 
-  return data;
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    return null;
+  }
 };
 
 module.exports = sendMail;

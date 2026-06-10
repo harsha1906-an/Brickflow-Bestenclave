@@ -8,7 +8,6 @@ const schema = new mongoose.Schema({
     companyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Company',
-        required: true,
         index: true,
     },
     number: {
@@ -34,6 +33,19 @@ const schema = new mongoose.Schema({
         },
         autopopulate: true,
     },
+    supplierPayments: [
+        {
+            inventoryTransaction: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'InventoryTransaction',
+                autopopulate: true,
+            },
+            amountPaid: {
+                type: Number,
+                required: true,
+            },
+        },
+    ],
     labour: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Labour',
@@ -80,6 +92,7 @@ const schema = new mongoose.Schema({
     taxAmount: { type: Number, default: 0 },
     taxType: { type: String, enum: ['IGST', 'CGST_SGST', 'None'], default: 'None' },
     totalAmount: { type: Number, default: 0 },
+    gstin: { type: String },
     advance: {
         type: Number,
         default: 0,

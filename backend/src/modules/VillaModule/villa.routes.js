@@ -1,15 +1,16 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const Villa = require('../../models/appModels/Villa');
+const checkRbac = require('@/middlewares/rbacMiddleware');
 
 const { logAuditAction } = require('../AuditLogModule');
 const villaController = require('../../controllers/appControllers/villaController');
 
 // Get Villa Progress Summary for Dashboard
-router.get('/progress-summary', villaController.progressSummary);
+router.get('/progress-summary', checkRbac('villa', 'read'), villaController.progressSummary);
 
 // List Villas for a company
-router.get('/', async (req, res) => {
+router.get('/', checkRbac('villa', 'read'), async (req, res) => {
   const { companyId } = req.params;
   try {
     const villas = await Villa.find({ companyId });
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create Villa
-router.post('/', async (req, res) => {
+router.post('/', checkRbac('villa', 'create'), async (req, res) => {
   const { companyId } = req.params;
   const { villaNumber, houseType, builtUpArea, status } = req.body;
   try {
@@ -42,7 +43,7 @@ router.post('/', async (req, res) => {
 });
 
 // Get Villa by ID
-router.get('/:villaId', async (req, res) => {
+router.get('/:villaId', checkRbac('villa', 'read'), async (req, res) => {
   const { companyId, villaId } = req.params;
   try {
     const villa = await Villa.findOne({ _id: villaId, companyId });
@@ -54,7 +55,7 @@ router.get('/:villaId', async (req, res) => {
 });
 
 // Update Villa
-router.put('/:villaId', async (req, res) => {
+router.put('/:villaId', checkRbac('villa', 'update'), async (req, res) => {
   const { companyId, villaId } = req.params;
   const { villaNumber, houseType, builtUpArea, status } = req.body;
   try {
@@ -80,7 +81,7 @@ router.put('/:villaId', async (req, res) => {
 });
 
 // Delete Villa
-router.delete('/:villaId', async (req, res) => {
+router.delete('/:villaId', checkRbac('villa', 'delete'), async (req, res) => {
   const { companyId, villaId } = req.params;
   try {
     const villa = await Villa.findOneAndDelete({ _id: villaId, companyId });

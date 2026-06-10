@@ -1,11 +1,12 @@
 const express = require('express');
 const Labour = require('../../models/appModels/Labour');
+const checkRbac = require('@/middlewares/rbacMiddleware');
 
 const router = express.Router({ mergeParams: true });
 const { logAuditAction } = require('../AuditLogModule');
 
 // List all labour for a company
-router.get('/', async (req, res) => {
+router.get('/', checkRbac('labour', 'read'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const labourList = await Labour.find({ companyId });
@@ -16,7 +17,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create new labour
-router.post('/', async (req, res) => {
+router.post('/', checkRbac('labour', 'create'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const { name, skill, isActive, employmentType, dailyWage, monthlySalary, paymentDay, isSubstitute, phone } = req.body;
@@ -49,7 +50,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update labour
-router.patch('/:labourId', async (req, res) => {
+router.patch('/:labourId', checkRbac('labour', 'update'), async (req, res) => {
   try {
     const { companyId, labourId } = req.params;
     const update = req.body;
@@ -71,7 +72,7 @@ router.patch('/:labourId', async (req, res) => {
 });
 
 // Delete labour
-router.delete('/:labourId', async (req, res) => {
+router.delete('/:labourId', checkRbac('labour', 'delete'), async (req, res) => {
   try {
     const { companyId, labourId } = req.params;
     const result = await Labour.deleteOne({ _id: labourId, companyId });

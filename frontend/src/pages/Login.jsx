@@ -36,9 +36,10 @@ const LoginPage = () => {
           name="normal_login"
           className="login-form"
           initialValues={{
-            remember: true,
+            remember: false,
           }}
           onFinish={onFinish}
+          autoComplete="off"
         >
           <LoginForm />
           <Form.Item>

@@ -9,13 +9,14 @@ import {
   CloseCircleOutlined,
   RetweetOutlined,
   MailOutlined,
+  WhatsAppOutlined,
 } from '@ant-design/icons';
 
 import { useSelector, useDispatch } from 'react-redux';
 import useLanguage from '@/locale/useLanguage';
 import { erp } from '@/redux/erp/actions';
 
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 import { selectCurrentItem } from '@/redux/erp/selectors';
 
@@ -23,6 +24,7 @@ import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 import { useMoney, useDate } from '@/settings';
 import useMail from '@/hooks/useMail';
 import { useNavigate } from 'react-router-dom';
+import WhatsAppModal from '@/components/WhatsAppModal';
 
 const Item = ({ item, currentErp }) => {
   const { moneyFormatter } = useMoney();
@@ -67,6 +69,8 @@ const Item = ({ item, currentErp }) => {
   );
 };
 
+import storePersist from '@/redux/storePersist';
+
 export default function ReadItem({ config, selectedItem, ReadForm }) {
   const translate = useLanguage();
   const { entity, ENTITY_NAME } = config;
@@ -100,6 +104,7 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
   const [itemslist, setItemsList] = useState([]);
   const [currentErp, setCurrentErp] = useState(selectedItem ?? resetErp);
   const [client, setClient] = useState({});
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   useEffect(() => {
     if (selectedItem) {
@@ -161,8 +166,10 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
             <Button
               key={`${uniqueId()}`}
               onClick={() => {
+                const auth = storePersist.get('auth');
+                const token = auth?.current?.token || '';
                 window.open(
-                  `${DOWNLOAD_BASE_URL}${entity}/${entity}-${currentErp?._id}.pdf`,
+                  `${DOWNLOAD_BASE_URL}${entity}/${entity}-${currentErp?._id}.pdf?token=${token}`,
                   '_blank'
                 );
               }}
@@ -171,7 +178,7 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
               {translate('Download PDF')}
             </Button>
           ),
-          isTransaction && (
+           isTransaction && (
             <Button
               key={`${uniqueId()}`}
               loading={mailInProgress}
@@ -181,6 +188,17 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
               icon={<MailOutlined />}
             >
               {translate('Send by Email')}
+            </Button>
+          ),
+          isTransaction && (
+            <Button
+              key={`${uniqueId()}`}
+              onClick={() => {
+                setIsWhatsAppOpen(true);
+              }}
+              icon={<WhatsAppOutlined />}
+            >
+              {translate('Send via WhatsApp')}
             </Button>
           ),
           <Button
@@ -352,6 +370,12 @@ export default function ReadItem({ config, selectedItem, ReadForm }) {
           </div>
         </>
       )}
+      <WhatsAppModal
+        isOpen={isWhatsAppOpen}
+        onClose={() => setIsWhatsAppOpen(false)}
+        currentErp={currentErp}
+        entity={entity}
+      />
     </>
   );
 }

@@ -1,6 +1,11 @@
 const create = async (Model, req, res) => {
   // Creating a new document in the collection
   console.log('Create Request Body:', req.body);
+  
+  // Prevent Mass Assignment of critical system fields
+  const blacklistedFields = ['removed', 'enabled', 'role', 'password', 'salt', 'loggedSessions'];
+  blacklistedFields.forEach(field => delete req.body[field]);
+
   req.body.removed = false;
   const result = await new Model({
     ...req.body,

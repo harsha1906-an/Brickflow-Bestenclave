@@ -13,6 +13,8 @@ import GeneralSettings from './GeneralSettings';
 import CompanySettings from './CompanySettings';
 import FinanceSettings from './FinanceSettings';
 import MoneyFormatSettings from './MoneyFormatSettings';
+import WhatsAppSettings from './WhatsAppSettings';
+import { WhatsAppOutlined } from '@ant-design/icons';
 
 import useLanguage from '@/locale/useLanguage';
 import { useParams } from 'react-router-dom';
@@ -50,6 +52,12 @@ export default function Settings() {
       label: translate('Finance Settings'),
       icon: <CreditCardOutlined />,
       children: <FinanceSettings />,
+    },
+    {
+      key: 'whatsapp_settings',
+      label: translate('WhatsApp Config'),
+      icon: <WhatsAppOutlined />,
+      children: <WhatsAppSettings />,
     },
   ];
 

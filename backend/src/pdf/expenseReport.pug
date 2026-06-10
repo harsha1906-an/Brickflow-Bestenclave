@@ -87,6 +87,8 @@ html
             div #{settings.company_name}
             if settings.company_address
                 div #{settings.company_address}
+                if settings.company_gstin
+                  div GSTIN: #{settings.company_gstin}
             div
                 if settings.company_phone
                     span Phone: #{settings.company_phone} 

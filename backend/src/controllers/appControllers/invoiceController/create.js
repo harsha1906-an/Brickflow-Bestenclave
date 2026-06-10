@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const Model = mongoose.model('Invoice');
+const Client = mongoose.model('Client');
+const whatsappService = require('@/services/whatsappService');
 
 const { calculate } = require('@/helpers');
 const { increaseBySettingKey } = require('@/middlewares/settings');
@@ -62,6 +64,22 @@ const create = async (req, res) => {
   increaseBySettingKey({
     settingKey: 'last_invoice_number',
   });
+
+  // WhatsApp Notification
+  if (value.client) {
+    try {
+      const client = await Client.findOne({ _id: value.client, removed: false });
+      if (client && client.phone) {
+        // Send Invoice Created / Payment Request Notification
+        await whatsappService.sendTemplate(client.phone, 'payment_request', 'en_US', [
+          { type: 'text', text: 'Invoice #' + (result.number || result._id.toString()) },
+          { type: 'text', text: total.toString() },
+        ]);
+      }
+    } catch (e) {
+      console.error('WhatsApp Error:', e);
+    }
+  }
 
   // Returning successfull response
   return res.status(200).json({

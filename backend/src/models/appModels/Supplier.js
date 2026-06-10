@@ -14,24 +14,8 @@ const schema = new mongoose.Schema({
         required: true,
     },
     supplierType: {
-        type: String,
-        enum: [
-            'cement',
-            'aggregate',
-            'steel',
-            'rods',
-            'bricks',
-            'tiles',
-            'electrical',
-            'plumbing',
-            'hardware',
-            'paint',
-            'wood',
-            'glass',
-            'sanitary',
-            'other'
-        ],
-        default: 'other'
+        type: [String],
+        default: ['other']
     },
     email: {
         type: String,

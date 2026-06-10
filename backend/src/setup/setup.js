@@ -2,13 +2,21 @@ require('dotenv').config({ path: '.env' });
 require('dotenv').config({ path: '.env.local' });
 const { globSync } = require('glob');
 const fs = require('fs');
-const { generate: uniqueId } = require('shortid');
+const { nanoid: uniqueId } = require('nanoid');
 
 const mongoose = require('mongoose');
 mongoose.connect(process.env.DATABASE);
 
 async function setupApp() {
   try {
+    const Company = require('../models/appModels/Company');
+    const defaultCompany = {
+      name: 'Main Company',
+      isActive: true,
+    };
+    const companyResult = await new Company(defaultCompany).save();
+    console.log('👍 Default Company created : Done!');
+
     const Admin = require('../models/coreModels/Admin');
     const AdminPassword = require('../models/coreModels/AdminPassword');
     const newAdminPassword = new AdminPassword();
@@ -23,6 +31,7 @@ async function setupApp() {
       surname: 'Admin',
       enabled: true,
       role: 'owner',
+      companyId: companyResult._id,
     };
     const result = await new Admin(demoAdmin).save();
 
@@ -65,14 +74,6 @@ async function setupApp() {
       },
     ]);
     console.log('👍 PaymentMode created : Done!');
-
-    const Company = require('../models/appModels/Company');
-    const defaultCompany = {
-      name: 'Main Company',
-      isActive: true,
-    };
-    await new Company(defaultCompany).save();
-    console.log('👍 Default Company created : Done!');
 
     console.log('🥳 Setup completed :Success!');
     process.exit();

@@ -31,6 +31,8 @@ html
         .right.company-info
           p.strong #{settings.company_name}
           p #{settings.company_address}
+          if settings.company_gstin
+            p GSTIN: #{settings.company_gstin}
           p #{settings.company_email}
       
       .clearfix(style="margin-top: 20px; margin-bottom: 20px;")

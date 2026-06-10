@@ -12,7 +12,74 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <style>
+    /* Initial Loader to prevent white flash before React mounts */
+    #root-loader {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      background-color: #f5f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    .spinner-wrapper {
+      position: relative;
+      width: 60px;
+      height: 60px;
+    }
+    .spinner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: #1677ff;
+      animation: spin 1s linear infinite;
+    }
+    .spinner-inner {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      border-top-color: #52c41a;
+      animation: spin-reverse 0.75s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes spin-reverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .loader-text {
+      margin-top: 24px;
+      color: #8c8c8c;
+      font-size: 14px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+  </style>
+  <div id="root">
+    <div id="root-loader">
+      <div class="spinner-wrapper">
+        <div class="spinner"></div>
+        <div class="spinner-inner"></div>
+      </div>
+      <div class="loader-text">Loading Workspace...</div>
+    </div>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 

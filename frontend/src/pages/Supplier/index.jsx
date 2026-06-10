@@ -46,7 +46,18 @@ export default function SupplierList() {
                     sanitary: 'Sanitary',
                     other: 'Other'
                 };
-                return <Tag color="blue">{typeLabels[type] || 'Other'}</Tag>;
+                if (Array.isArray(type)) {
+                    return (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {type.map(t => (
+                                <Tag color="blue" key={t}>
+                                    {typeLabels[t] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : '')}
+                                </Tag>
+                            ))}
+                        </div>
+                    );
+                }
+                return <Tag color="blue">{typeLabels[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : '')}</Tag>;
             }
         },
         {
@@ -102,7 +113,18 @@ export default function SupplierList() {
                     sanitary: 'Sanitary',
                     other: 'Other'
                 };
-                return <Tag color="blue">{typeLabels[type] || 'Other'}</Tag>;
+                if (Array.isArray(type)) {
+                    return (
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {type.map(t => (
+                                <Tag color="blue" key={t}>
+                                    {typeLabels[t] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : '')}
+                                </Tag>
+                            ))}
+                        </div>
+                    );
+                }
+                return <Tag color="blue">{typeLabels[type] || (type ? type.charAt(0).toUpperCase() + type.slice(1) : '')}</Tag>;
             }
         },
         {

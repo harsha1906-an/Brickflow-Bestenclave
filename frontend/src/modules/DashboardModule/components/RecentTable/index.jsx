@@ -9,6 +9,7 @@ import { erp } from '@/redux/erp/actions';
 import useLanguage from '@/locale/useLanguage';
 import { useNavigate } from 'react-router-dom';
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
+import storePersist from '@/redux/storePersist';
 
 export default function RecentTable({ ...props }) {
   const translate = useLanguage();
@@ -44,7 +45,9 @@ export default function RecentTable({ ...props }) {
     navigate(`/${entity}/update/${record._id}`);
   };
   const handleDownload = (record) => {
-    window.open(`${DOWNLOAD_BASE_URL}${entity}/${entity}-${record._id}.pdf`, '_blank');
+    const auth = storePersist.get('auth');
+    const token = auth?.current?.token || '';
+    window.open(`${DOWNLOAD_BASE_URL}${entity}/${entity}-${record._id}.pdf?token=${token}`, '_blank');
   };
 
   dataTableColumns = [

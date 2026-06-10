@@ -8,21 +8,24 @@ import {
   CloseCircleOutlined,
   MailOutlined,
   ExportOutlined,
+  WhatsAppOutlined,
 } from '@ant-design/icons';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { erp } from '@/redux/erp/actions';
 import useLanguage from '@/locale/useLanguage';
 
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 import { selectCurrentItem } from '@/redux/erp/selectors';
 
+import storePersist from '@/redux/storePersist';
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 import { useMoney } from '@/settings';
 
 import useMail from '@/hooks/useMail';
 import { useNavigate } from 'react-router-dom';
+import WhatsAppModal from '@/components/WhatsAppModal';
 
 export default function ReadItem({ config, selectedItem }) {
   const translate = useLanguage();
@@ -54,6 +57,7 @@ export default function ReadItem({ config, selectedItem }) {
 
   const [currentErp, setCurrentErp] = useState(selectedItem ?? resetErp);
   const [client, setClient] = useState({});
+  const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
 
   useEffect(() => {
     if (selectedItem) {
@@ -95,8 +99,10 @@ export default function ReadItem({ config, selectedItem }) {
           <Button
             key={`${uniqueId()}`}
             onClick={() => {
+              const auth = storePersist.get('auth');
+              const token = auth?.current?.token || '';
               window.open(
-                `${DOWNLOAD_BASE_URL}${entity}/${entity}-${currentErp._id}.pdf`,
+                `${DOWNLOAD_BASE_URL}${entity}/${entity}-${currentErp._id}.pdf?token=${token}`,
                 '_blank'
               );
             }}
@@ -113,6 +119,15 @@ export default function ReadItem({ config, selectedItem }) {
             icon={<MailOutlined />}
           >
             {translate('Send by email')}
+          </Button>,
+          <Button
+            key={`${uniqueId()}`}
+            onClick={() => {
+              setIsWhatsAppOpen(true);
+            }}
+            icon={<WhatsAppOutlined />}
+          >
+            {translate('Send via WhatsApp')}
           </Button>,
 
           <Button
@@ -231,6 +246,12 @@ export default function ReadItem({ config, selectedItem }) {
           </Col>
         </Row>
       </div>
+      <WhatsAppModal
+        isOpen={isWhatsAppOpen}
+        onClose={() => setIsWhatsAppOpen(false)}
+        currentErp={currentErp}
+        entity={entity}
+      />
     </>
   );
 }

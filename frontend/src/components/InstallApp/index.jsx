@@ -3,6 +3,8 @@ import { Button, Modal } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 
 const InstallApp = () => {
+    return null; // Force hidden
+    /*
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [showInstructions, setShowInstructions] = useState(false);
 
@@ -76,7 +78,9 @@ const InstallApp = () => {
                 </div>
             </Modal>
         </>
-    );
+    */
+    
+    return null;
 };
 
 export default InstallApp;

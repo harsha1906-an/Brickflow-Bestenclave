@@ -15,11 +15,11 @@ exports.dailySummary = ({
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Official Income:</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: #27ae60;">₹${officialIncome.toLocaleString()}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: #27ae60;">₹${(breakdown?.officialIncome || 0).toLocaleString()}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Internal Income (Cash):</strong></td>
-                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: #f39c12;">₹${internalIncome.toLocaleString()}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right; color: #f39c12;">₹${(breakdown?.internalIncome || 0).toLocaleString()}</td>
                 </tr>
                 <tr>
                     <td style="padding: 8px; border-bottom: 1px solid #eee; background-color: #f9f9f9;"><strong>Total Today's Income:</strong></td>

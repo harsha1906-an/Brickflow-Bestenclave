@@ -6,7 +6,7 @@ import useLanguage from '@/locale/useLanguage';
 import { useMoney, useDate } from '@/settings';
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
 import SelectAsync from '@/components/SelectAsync';
-import { generate as uniqueId } from 'shortid';
+import { nanoid as uniqueId } from 'nanoid';
 
 import { countryList } from '@/utils/countryList';
 import AadharInput from '@/components/AadharInput';

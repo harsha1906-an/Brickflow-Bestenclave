@@ -273,9 +273,14 @@ const request = {
     }
   },
 
-  convert: async ({ entity, id }) => {
+  convert: async ({ entity, id, jsonData }) => {
     try {
-      const response = await axiosInstance.get(`${entity}/convert/${id}`);
+      let response;
+      if (jsonData) {
+        response = await axiosInstance.post(`${entity}/convert/${id}`, jsonData);
+      } else {
+        response = await axiosInstance.get(`${entity}/convert/${id}`);
+      }
       successHandler(response, {
         notifyOnSuccess: true,
         notifyOnFailed: true,

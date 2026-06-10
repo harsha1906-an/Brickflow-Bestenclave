@@ -139,11 +139,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       icon: <FileDoneOutlined />,
       label: <Link to={'/purchaseorder'}>{translate('purchase_order')}</Link>,
     },
-    {
-      key: 'quote',
-      icon: <FileSyncOutlined />,
-      label: <Link to={'/quote'}>{translate('quote')}</Link>,
-    },
+
     {
       key: 'approvals',
       icon: <FileProtectOutlined />,

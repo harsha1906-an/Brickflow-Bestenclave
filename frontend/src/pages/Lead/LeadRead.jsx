@@ -7,6 +7,7 @@ import { message, modal as AntdModal } from '@/utils/antdGlobal';
 import dayjs from 'dayjs';
 import { useUserRole } from '@/hooks/useUserRole';
 import LeadForm from '@/forms/LeadForm';
+import CustomerForm from '@/forms/CustomerForm';
 
 const { Step } = Steps;
 
@@ -16,6 +17,7 @@ export default function LeadRead() {
     const [lead, setLead] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
 
     // For notes
     const [noteText, setNoteText] = useState('');
@@ -83,24 +85,7 @@ export default function LeadRead() {
     };
 
     const handleConvert = () => {
-        AntdModal.confirm({
-            title: 'Convert to Customer?',
-            content: `This will create a new Customer record from ${lead.name}. The lead will be marked as Converted.`,
-            okText: 'Convert',
-            onOk: async () => {
-                try {
-                    const data = await request.convert({ entity: 'lead', id });
-                    if (data.success) {
-                        message.success('Successfully converted to Customer!');
-                        fetchLead();
-                        // Optionally navigate to customer page or show success
-                    }
-                } catch (e) {
-                    const { response } = e;
-                    message.error(response?.data?.message || 'Conversion failed');
-                }
-            }
-        });
+        setIsConvertModalOpen(true);
     };
 
     if (loading) return <Card loading />;
@@ -189,6 +174,22 @@ export default function LeadRead() {
                     }}
                 />
             )}
+
+            {/* Convert Modal */}
+            {isConvertModalOpen && (
+                <LeadConvertModal
+                    open={isConvertModalOpen}
+                    onCancel={() => setIsConvertModalOpen(false)}
+                    lead={lead}
+                    onSuccess={(newCustomer) => {
+                        setIsConvertModalOpen(false);
+                        fetchLead();
+                        if (newCustomer?._id) {
+                            navigate(`/customer/read/${newCustomer._id}`);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -227,6 +228,54 @@ function LeadEditModal({ open, onCancel, lead, onSuccess }) {
         >
             <Form form={form} layout="vertical">
                 <LeadForm isUpdateForm={true} />
+            </Form>
+        </Modal>
+    );
+}
+
+function LeadConvertModal({ open, onCancel, lead, onSuccess }) {
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+
+    // Populate form with lead basic info when modal opens
+    useEffect(() => {
+        if (open && lead) {
+            form.setFieldsValue({
+                name: lead.name,
+                phone: lead.phone,
+                email: lead.email,
+            });
+        }
+    }, [open, lead, form]);
+
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            setLoading(true);
+            const data = await request.convert({ entity: 'lead', id: lead._id, jsonData: values });
+            if (data.success) {
+                onSuccess(data.result);
+            }
+        } catch (e) {
+            const { response } = e;
+            message.error(response?.data?.message || 'Conversion failed');
+        }
+        setLoading(false);
+    };
+
+    return (
+        <Modal
+            title="Convert Lead to Customer"
+            open={open}
+            onCancel={onCancel}
+            onOk={handleSubmit}
+            confirmLoading={loading}
+            width={800}
+            style={{ top: 20 }}
+            okText="Save Customer"
+        >
+            <Form form={form} layout="vertical">
+                <CustomerForm isUpdateForm={false} />
             </Form>
         </Modal>
     );

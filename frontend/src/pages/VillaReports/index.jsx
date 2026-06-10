@@ -60,9 +60,9 @@ export default function VillaReports() {
                     .reduce((sum, t) => sum + (t.totalCost || 0), 0);
             }
 
-            // Fetch labour expenses for this villa
-            const labourExpenseData = await request.filter({
-                entity: 'expense',
+            // Fetch labour contract for this villa to get Gross Amount
+            const contractRes = await request.filter({
+                entity: 'labourcontract',
                 options: {
                     filter: 'villa',
                     equal: villaId
@@ -70,10 +70,16 @@ export default function VillaReports() {
             });
 
             let labourCost = 0;
-            if (labourExpenseData.success && labourExpenseData.result) {
-                labourCost = labourExpenseData.result
-                    .filter(e => e.recipientType === 'Labour')
-                    .reduce((sum, e) => sum + (e.amount || 0), 0);
+            if (contractRes.success && contractRes.result) {
+                 contractRes.result.forEach(contract => {
+                    if (contract.milestones && Array.isArray(contract.milestones)) {
+                        contract.milestones.forEach(ms => {
+                            if (ms.isCompleted) {
+                                labourCost += ms.amount || 0;
+                            }
+                        });
+                    }
+                });
             }
 
             // Fetch Customer Payments (Income)
