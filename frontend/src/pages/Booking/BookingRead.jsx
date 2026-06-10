@@ -80,6 +80,7 @@ export default function BookingRead() {
                 whiteRef: '',
                 blackRef: '',
                 description: ''
+            });
         }
     }, [paymentModal.open, paymentModal.milestone]);
 
