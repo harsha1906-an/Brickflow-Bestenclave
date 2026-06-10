@@ -39,6 +39,6 @@ const adminSchema = new Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
   },
-});
+}, { skipTenant: true });
 
 module.exports = mongoose.model('Admin', adminSchema);

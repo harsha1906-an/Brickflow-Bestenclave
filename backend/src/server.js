@@ -21,6 +21,9 @@ if (!process.env.DATABASE || !process.env.JWT_SECRET) {
 
 mongoose.connect(process.env.DATABASE);
 
+const tenantPlugin = require('@/middlewares/tenantPlugin');
+mongoose.plugin(tenantPlugin);
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 mongoose.connection.on('error', (error) => {

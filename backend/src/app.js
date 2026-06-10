@@ -91,19 +91,21 @@ app.get('/api/cron/daily-summary', async (req, res) => {
 
 // Here our API Routes
 
+const { tenantMiddleware } = require('@/middlewares/tenantContext');
+
 app.use('/api', coreAuthRouter);
-app.use('/api', adminAuth.isValidAuthToken, coreApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, erpApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, villaApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, villaProgressApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, labourApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, attendanceApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, reportingApiRouter);
-app.use('/api', adminAuth.isValidAuthToken, bookingApiRouter);
-app.use('/api/chat', adminAuth.isValidAuthToken, chatApiRouter);
-app.use('/api/analytics', adminAuth.isValidAuthToken, analyticsApiRouter);
-app.use('/api/whatsapp', adminAuth.isValidAuthToken, whatsappApiRouter);
-app.use('/download', adminAuth.isValidAuthToken, coreDownloadRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, coreApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, erpApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, villaApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, villaProgressApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, labourApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, attendanceApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, reportingApiRouter);
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, bookingApiRouter);
+app.use('/api/chat', adminAuth.isValidAuthToken, tenantMiddleware, chatApiRouter);
+app.use('/api/analytics', adminAuth.isValidAuthToken, tenantMiddleware, analyticsApiRouter);
+app.use('/api/whatsapp', adminAuth.isValidAuthToken, tenantMiddleware, whatsappApiRouter);
+app.use('/download', adminAuth.isValidAuthToken, tenantMiddleware, coreDownloadRouter);
 app.use('/public', corePublicRouter);
 
 // If that above routes didnt work, we 404 them and forward to error handler

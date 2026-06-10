@@ -68,6 +68,6 @@ const uploadSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-});
+}, { skipTenant: true });
 
 module.exports = mongoose.model('Upload ', uploadSchema);

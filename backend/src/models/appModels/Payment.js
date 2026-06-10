@@ -5,7 +5,11 @@ const paymentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-
+  companyId: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'Company',
+    index: true,
+  },
   createdBy: { type: mongoose.Schema.ObjectId, ref: 'Admin', required: true },
   number: {
     type: Number,

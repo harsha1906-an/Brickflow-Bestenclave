@@ -2,56 +2,54 @@ const Booking = require('../../models/appModels/Booking');
 const Villa = require('../../models/appModels/Villa');
 const Client = require('../../models/appModels/Client');
 const whatsappService = require('../../services/whatsappService');
+const { runInTransaction } = require('../../utils/transactionHelper');
 
 const create = async (req, res) => {
     const bookingData = req.body;
     const createdBy = req.admin._id;
 
     try {
-        // 1. Check if Villa is available
-        // We remove companyId check here or assume it's implicit/managed globally
-        const villa = await Villa.findOne({ _id: bookingData.villa });
+        const result = await runInTransaction(async (session) => {
+            // 1. Check if Villa is available
+            const villa = await Villa.findOne({ _id: bookingData.villa }).session(session);
 
-        if (!villa) {
-            return res.status(404).json({ success: false, message: 'Villa not found' });
-        }
+            if (!villa) {
+                throw new Error('Villa not found');
+            }
 
-        if (villa.status && villa.status.toLowerCase() !== 'available') {
-            return res.status(400).json({ success: false, message: 'Villa is not available for booking' });
-        }
+            if (villa.status && villa.status.toLowerCase() !== 'available') {
+                throw new Error('Villa is not available for booking');
+            }
 
-        // 2. Create Booking
-        // We attach createdBy just in case, though schema used companyId. 
-        // We might need to adjust schema to be consistent with Invoice if strict.
-        // For now, let's keep companyId if we can find it, or mock it, or just use what we have.
-        // If Villa has companyId, maybe we use that?
-        if (villa.companyId) {
-            bookingData.companyId = villa.companyId;
-        }
+            // 2. Create Booking
+            if (villa.companyId) {
+                bookingData.companyId = villa.companyId;
+            }
 
-        // bookingData.createdBy = createdBy; // If we add this field to schema
+            const booking = new Booking(bookingData);
+            await booking.save({ session });
 
-        const booking = new Booking(bookingData);
-        await booking.save();
+            // 3. Update Villa Status
+            villa.status = 'booked';
+            await villa.save({ session });
 
-        // 3. Update Villa Status
-        villa.status = 'booked';
-        await villa.save();
+            return booking;
+        });
 
-        // Send WhatsApp Notification
+        // Send WhatsApp Notification (asynchronously, after transaction commits)
         try {
             const client = await Client.findOne({ _id: bookingData.client, removed: false });
             if (client && client.phone) {
                 await whatsappService.sendTemplate(client.phone, 'booking_successful', 'en_US', [
-                    { type: 'text', text: villa.name || 'Villa' },
-                    { type: 'text', text: booking._id.toString() }
+                    { type: 'text', text: result.villaNumber || 'Villa' },
+                    { type: 'text', text: result._id.toString() }
                 ]);
             }
         } catch (err) {
             console.error('Failed to send WhatsApp notification:', err);
         }
 
-        return res.status(200).json({ success: true, result: booking, message: 'Booking created successfully' });
+        return res.status(200).json({ success: true, result, message: 'Booking created successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to create booking', error: error.message });
     }
@@ -106,23 +104,27 @@ const update = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     try {
-        const booking = await Booking.findOne({ _id: id, removed: false });
-        if (!booking) {
-            return res.status(404).json({ success: false, message: 'Booking not found' });
-        }
-
-        Object.assign(booking, updates);
-
-        if (updates.status === 'cancelled') {
-            const villa = await Villa.findOne({ _id: booking.villa });
-            if (villa) {
-                villa.status = 'available';
-                await villa.save();
+        const result = await runInTransaction(async (session) => {
+            const booking = await Booking.findOne({ _id: id, removed: false }).session(session);
+            if (!booking) {
+                throw new Error('Booking not found');
             }
-        }
 
-        await booking.save();
-        return res.status(200).json({ success: true, result: booking, message: 'Booking updated successfully' });
+            Object.assign(booking, updates);
+
+            if (updates.status === 'cancelled') {
+                const villa = await Villa.findOne({ _id: booking.villa }).session(session);
+                if (villa) {
+                    villa.status = 'available';
+                    await villa.save({ session });
+                }
+            }
+
+            await booking.save({ session });
+            return booking;
+        });
+
+        return res.status(200).json({ success: true, result, message: 'Booking updated successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to update booking', error: error.message });
     }

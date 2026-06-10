@@ -35,6 +35,6 @@ const settingSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-});
+}, { skipTenant: true });
 
 module.exports = mongoose.model('Setting', settingSchema);

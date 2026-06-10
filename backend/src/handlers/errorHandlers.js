@@ -6,11 +6,13 @@
   catchErrors(), catch any errors they throw, and pass it along to our express middleware with next()
 */
 
+const logger = require('../utils/logger');
+
 exports.catchErrors = (fn) => {
   return function (req, res, next) {
     return fn(req, res, next).catch((error) => {
       if (error.name == 'ValidationError') {
-        console.log('Validation Error:', JSON.stringify(error, null, 2));
+        logger.warn('Validation Error', { error: error.message, controller: fn.name });
         return res.status(400).json({
           success: false,
           result: null,
@@ -51,6 +53,8 @@ exports.developmentErrors = (error, req, res, next) => {
     stackHighlighted: error.stack.replace(/[a-z_-\d]+.js:\d+:\d+/gi, '<mark>$&</mark>'),
   };
 
+  logger.error(error.message, { stack: error.stack, path: req.originalUrl, method: req.method });
+
   return res.status(500).json({
     success: false,
     message: error.message,
@@ -64,6 +68,12 @@ exports.developmentErrors = (error, req, res, next) => {
   No stacktraces are leaked to admin
 */
 exports.productionErrors = (error, req, res, next) => {
+  logger.error(error.message, {
+    stack: error.stack,
+    path: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+  });
   return res.status(500).json({
     success: false,
     message: error.message,
