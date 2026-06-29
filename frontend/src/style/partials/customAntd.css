@@ -241,6 +241,16 @@ h6 {
     width: 100% !important;
   }
 
+  .mobile-card-table .ant-table-tbody > tr > td::before {
+    content: attr(data-label) !important;
+    font-weight: 600 !important;
+    color: #888 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-right: 16px !important;
+  }
+
   .dark-theme .mobile-card-table .ant-table-tbody > tr > td {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   }

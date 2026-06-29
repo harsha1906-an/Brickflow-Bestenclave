@@ -186,6 +186,20 @@ export default function DataTable({ config, extra = [], customFilters }) {
     dispatch(erp.list({ entity, options }));
   };
 
+  const columnsWithLabels = columnsWithActions.map(col => {
+    if (col.key === 'action' || !col.title) return col;
+    return {
+      ...col,
+      onCell: (record, rowIndex) => {
+        const baseProps = col.onCell ? col.onCell(record, rowIndex) : {};
+        return {
+          ...baseProps,
+          'data-label': col.title,
+        };
+      }
+    };
+  });
+
   return (
     <>
       <PageHeader
@@ -220,13 +234,14 @@ export default function DataTable({ config, extra = [], customFilters }) {
       ></PageHeader>
 
       <Table
-        columns={columnsWithActions}
+        columns={columnsWithLabels}
         rowKey={(item) => item._id}
         dataSource={dataSource}
         pagination={pagination}
         loading={listIsLoading}
         onChange={handelDataTableLoad}
         scroll={{ x: true }}
+        className="mobile-card-table"
       />
     </>
   );
