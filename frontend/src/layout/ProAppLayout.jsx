@@ -87,6 +87,7 @@ export default function ProAppLayout({ children }) {
     { path: '/supplier', name: 'Suppliers', icon: <TeamOutlined /> },
     { path: '/inventory', name: 'Inventory', icon: <FileProtectOutlined /> },
     { path: '/labour', name: 'Labour', icon: <UserOutlined /> },
+    { path: '/attendance', name: 'Attendance', icon: <TagOutlined /> },
     { path: '/pettycash', name: 'Petty Cash', icon: <WalletOutlined /> },
     { path: '/expense', name: 'Expenses List', icon: <DollarOutlined /> },
     { path: '/payment', name: 'Payments', icon: <CreditCardOutlined /> },
