@@ -57,6 +57,16 @@ body, .ant-layout {
   border: var(--clay-border) !important;
 }
 
+/* Explicit override to strip shadows/boxes on mobile screens */
+.mobile-transparent-card.ant-card {
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.mobile-transparent-card .ant-card-body {
+  padding: 0 !important;
+}
+
 /* 3. Buttons (Squishy & Consistent) */
 /* Base Button Style */
 .ant-btn {
