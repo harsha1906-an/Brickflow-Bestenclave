@@ -533,11 +533,31 @@ export default function DataTable({ config, extra = [], customFilters }) {
       <div style={{ padding: '8px 0 24px 0' }}>
         {/* Title & Add Button Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: isDarkMode ? '#fff' : '#191c1d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: isDarkMode ? '#fff' : '#191c1d', display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
             <ArrowLeftOutlined onClick={() => window.history.back()} style={{ fontSize: '18px', cursor: 'pointer' }} />
-            {DATATABLE_TITLE}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {DATATABLE_TITLE}
+            </span>
           </h2>
-          {!disableAdd && <AddNewItem config={config} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Button 
+              onClick={handleDownloadCSV} 
+              icon={<DownloadOutlined style={{ fontSize: '16px' }} />} 
+              type="text"
+              shape="circle"
+              title={translate('Download CSV')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            />
+            <Button 
+              onClick={handelDataTableLoad} 
+              icon={<RedoOutlined style={{ fontSize: '16px' }} />} 
+              type="text"
+              shape="circle"
+              title={translate('Refresh')}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            />
+            {!disableAdd && <AddNewItem config={config} />}
+          </div>
         </div>
 
         {/* Full-width Search Bar */}
