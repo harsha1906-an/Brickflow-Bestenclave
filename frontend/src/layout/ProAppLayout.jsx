@@ -24,7 +24,10 @@ import {
   HistoryOutlined,
   FileTextOutlined,
   ScanOutlined,
-  MenuOutlined
+  MenuOutlined,
+  ApartmentOutlined,
+  CalendarOutlined,
+  ContactsOutlined
 } from '@ant-design/icons';
 import { Avatar, Dropdown, Button, ConfigProvider, Drawer, Divider } from 'antd';
 import { useSelector } from 'react-redux';
@@ -129,6 +132,45 @@ export default function ProAppLayout({ children }) {
   const handleMobileNavClick = (path) => {
     setMoreDrawerVisible(false);
     navigate(path);
+  };
+
+  const renderMobileNavItem = (path, icon, label, onClickHandler = null) => {
+    const isActive = onClickHandler 
+      ? moreDrawerVisible 
+      : (location.pathname === path || (path !== '/' && location.pathname.startsWith(path)));
+      
+    const handleClick = onClickHandler || (() => navigate(path));
+
+    return (
+      <div 
+        onClick={handleClick} 
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          flex: isActive ? '0 0 auto' : 1,
+          padding: isActive ? '4px 16px' : '4px 0',
+          borderRadius: isActive ? '20px' : '0',
+          backgroundColor: isActive 
+            ? (isDarkMode ? '#004493' : '#d8e2ff') 
+            : 'transparent',
+          color: isActive 
+            ? (isDarkMode ? '#adc7ff' : '#0059bb') 
+            : (isDarkMode ? '#888' : '#575f67'),
+          transition: 'all 0.2s ease',
+          minWidth: isActive ? '85px' : '65px'
+        }}
+      >
+        <div style={{ fontSize: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1px' }}>
+          {icon}
+        </div>
+        <span style={{ fontSize: '9px', fontWeight: isActive ? '700' : '500', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {label}
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -280,92 +322,15 @@ export default function ProAppLayout({ children }) {
           alignItems: 'center',
           zIndex: 1000,
           boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
-          paddingBottom: 'safe-area-inset-bottom'
+          paddingBottom: 'safe-area-inset-bottom',
+          paddingLeft: '8px',
+          paddingRight: '8px'
         }}>
-          <div 
-            onClick={() => navigate('/')} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: location.pathname === '/' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
-              cursor: 'pointer',
-              fontSize: '11px',
-              flex: 1
-            }}
-          >
-            <DashboardOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
-            <span>Dashboard</span>
-          </div>
-
-          <div 
-            onClick={() => navigate('/daily-summary')} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: location.pathname === '/daily-summary' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
-              cursor: 'pointer',
-              fontSize: '11px',
-              flex: 1
-            }}
-          >
-            <ContainerOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
-            <span>Expenses</span>
-          </div>
-
-          <div 
-            onClick={() => navigate('/scan-bills')} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: location.pathname === '/scan-bills' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
-              cursor: 'pointer',
-              fontSize: '11px',
-              flex: 1
-            }}
-          >
-            <ScanOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
-            <span>Scan Bills</span>
-          </div>
-
-          <div 
-            onClick={() => navigate('/attendance')} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: location.pathname === '/attendance' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
-              cursor: 'pointer',
-              fontSize: '11px',
-              flex: 1
-            }}
-          >
-            <TagOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
-            <span>Attendance</span>
-          </div>
-
-          <div 
-            onClick={() => setMoreDrawerVisible(true)} 
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: moreDrawerVisible ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
-              cursor: 'pointer',
-              fontSize: '11px',
-              flex: 1
-            }}
-          >
-            <MenuOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
-            <span>More</span>
-          </div>
+          {renderMobileNavItem('/', <DashboardOutlined />, 'Dashboard')}
+          {renderMobileNavItem('/villa', <ApartmentOutlined />, 'Villas')}
+          {renderMobileNavItem('/booking', <CalendarOutlined />, 'Bookings')}
+          {renderMobileNavItem('/lead', <ContactsOutlined />, 'Leads')}
+          {renderMobileNavItem(null, <MenuOutlined />, 'More', () => setMoreDrawerVisible(true))}
         </div>
       )}
 

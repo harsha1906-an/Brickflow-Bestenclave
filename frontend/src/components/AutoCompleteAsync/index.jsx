@@ -18,6 +18,7 @@ export default function AutoCompleteAsync({
   urlToRedirect = '/',
   value, /// this is for update
   onChange, /// this is for update
+  placeholder,
 }) {
   const translate = useLanguage();
 
@@ -116,7 +117,7 @@ export default function AutoCompleteAsync({
       loading={isLoading}
       showSearch
       allowClear
-      placeholder={translate('Search')}
+      placeholder={placeholder || translate('Search')}
       defaultActiveFirstOption={false}
       filterOption={false}
       notFoundContent={searching ? '... Searching' : <Empty />}

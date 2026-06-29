@@ -26,6 +26,7 @@ import { nanoid as uniqueId } from 'nanoid';
 import { useNavigate } from 'react-router-dom';
 import useMobile from '@/hooks/useMobile';
 import { useThemeContext } from '@/context/ThemeContext';
+import { useMoney } from '@/settings';
 
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 
@@ -38,7 +39,20 @@ function AddNewItem({ config }) {
   };
 
   return (
-    <Button onClick={handleClick} type="primary" icon={<PlusOutlined />}>
+    <Button 
+      onClick={handleClick} 
+      type="primary" 
+      icon={<PlusOutlined />}
+      style={{
+        borderRadius: '8px',
+        fontWeight: '600',
+        boxShadow: '0px 4px 10px rgba(0, 89, 187, 0.15)',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px'
+      }}
+    >
       {ADD_NEW_ENTITY}
     </Button>
   );
@@ -46,6 +60,7 @@ function AddNewItem({ config }) {
 
 export default function DataTable({ config, extra = [], customFilters }) {
   const translate = useLanguage();
+  const { moneyFormatter } = useMoney();
   let { entity, dataTableColumns, disableAdd = false, searchConfig } = config;
 
   const { DATATABLE_TITLE } = config;
@@ -213,6 +228,156 @@ export default function DataTable({ config, extra = [], customFilters }) {
   };
 
   const renderMobileCards = () => {
+    if (entity === 'villa') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {dataSource.map((record) => {
+            const status = record.status ? record.status.toUpperCase() : 'AVAILABLE';
+            const isBooked = status === 'BOOKED' || status === 'SOLD';
+            const statusBg = isBooked ? 'rgba(46, 117, 89, 0.1)' : 'rgba(92, 107, 115, 0.1)';
+            const statusColor = isBooked ? '#2e7559' : '#5c6b73';
+            const statusBorder = isBooked ? '1px solid rgba(46, 117, 89, 0.2)' : '1px solid rgba(92, 107, 115, 0.2)';
+
+            return (
+              <div 
+                key={record._id} 
+                className="soft-card-shadow"
+                style={{
+                  background: isDarkMode ? '#1f1f1f' : '#ffffff',
+                  border: isDarkMode ? '1px solid #303030' : '1px solid #e7e8e9',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  position: 'relative'
+                }}
+              >
+                {/* Header Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                      VILLA NUMBER
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: isDarkMode ? '#fff' : '#191c1d' }}>
+                      {record.villaNumber || '-'}
+                    </div>
+                  </div>
+                  <div style={{
+                    background: statusBg,
+                    color: statusColor,
+                    border: statusBorder,
+                    padding: '4px 12px',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {status}
+                  </div>
+                </div>
+
+                {/* Details Grid (2 columns) */}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(2, 1fr)', 
+                  gap: '16px 12px',
+                  padding: '4px 0'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      TYPE
+                    </div>
+                    <div style={{ fontSize: '14px', color: isDarkMode ? '#ddd' : '#191c1d', fontWeight: '400' }}>
+                      {record.houseType || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      FACING
+                    </div>
+                    <div style={{ fontSize: '14px', color: isDarkMode ? '#ddd' : '#191c1d', fontWeight: '400' }}>
+                      {record.facing || '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      LAND AREA
+                    </div>
+                    <div style={{ fontSize: '14px', color: isDarkMode ? '#ddd' : '#191c1d', fontWeight: '400' }}>
+                      {record.landArea ? `${record.landArea} sqft` : '-'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      TOTAL BUILT UP
+                    </div>
+                    <div style={{ fontSize: '14px', color: isDarkMode ? '#ddd' : '#191c1d', fontWeight: '400' }}>
+                      {record.builtUpArea ? `${record.builtUpArea} sqft` : '-'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divider and Footer */}
+                <div style={{ 
+                  borderTop: isDarkMode ? '1px solid #303030' : '1px solid #edeeef', 
+                  paddingTop: '16px', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center' 
+                }}>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#717786', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                      TOTAL PRICE
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#0059bb' }}>
+                      {moneyFormatter({ amount: record.totalAmount || 0 })}
+                    </div>
+                  </div>
+
+                  {/* Dropdown Action Menu */}
+                  <div>
+                    <Dropdown
+                      menu={{
+                        items: [
+                          {
+                            label: translate('Show'),
+                            key: 'read',
+                            icon: <EyeOutlined />,
+                            onClick: () => handleRead(record)
+                          },
+                          {
+                            label: translate('Edit'),
+                            key: 'edit',
+                            icon: <EditOutlined />,
+                            onClick: () => handleEdit(record)
+                          },
+                          { type: 'divider' },
+                          {
+                            label: translate('Delete'),
+                            key: 'delete',
+                            icon: <DeleteOutlined />,
+                            onClick: () => handleDelete(record)
+                          }
+                        ]
+                      }}
+                      trigger={['click']}
+                    >
+                      <Button 
+                        type="text" 
+                        shape="circle" 
+                        icon={<EllipsisOutlined style={{ fontSize: '20px' }} />} 
+                      />
+                    </Dropdown>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     const headerCol = dataTableColumns[0];
     const statusCol = dataTableColumns.find(c => c.dataIndex === 'status' || c.key === 'status');
     const priceCol = dataTableColumns.find(c => 
@@ -368,7 +533,8 @@ export default function DataTable({ config, extra = [], customFilters }) {
       <div style={{ padding: '8px 0 24px 0' }}>
         {/* Title & Add Button Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: isDarkMode ? '#fff' : '#191c1d' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0, color: isDarkMode ? '#fff' : '#191c1d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ArrowLeftOutlined onClick={() => window.history.back()} style={{ fontSize: '18px', cursor: 'pointer' }} />
             {DATATABLE_TITLE}
           </h2>
           {!disableAdd && <AddNewItem config={config} />}
@@ -383,6 +549,7 @@ export default function DataTable({ config, extra = [], customFilters }) {
               searchFields={'name'}
               onChange={filterTable}
               style={{ width: '100%' }}
+              placeholder={entity === 'villa' ? "Search villas..." : translate('Search')}
             />
           </div>
         )}
