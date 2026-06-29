@@ -370,7 +370,7 @@ const AttendanceEntry = () => {
                         label: <span><PlusCircleOutlined /> Mark Attendance</span>,
                         children: (
                             <Card style={{ border: isMobile ? 'none' : undefined, background: isMobile ? 'transparent' : undefined }} styles={{ body: { padding: isMobile ? 0 : undefined } }}>
-                                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px', width: '100%' }}>
                                     {/* Header */}
                                     {isMobile ? (
                                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -570,7 +570,7 @@ const AttendanceEntry = () => {
                                             showIcon
                                         />
                                     )}
-                                </Space>
+                                </div>
                             </Card>
                         )
                     },
