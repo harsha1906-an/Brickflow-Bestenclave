@@ -369,7 +369,7 @@ const AttendanceEntry = () => {
                         key: 'mark',
                         label: <span><PlusCircleOutlined /> Mark Attendance</span>,
                         children: (
-                            <Card style={{ border: isMobile ? 'none' : undefined, background: isMobile ? 'transparent' : undefined }} styles={{ body: { padding: isMobile ? 0 : undefined } }}>
+                            <Card style={{ border: isMobile ? 'none' : undefined, background: isMobile ? 'transparent' : undefined, boxShadow: isMobile ? 'none' : undefined }} styles={{ body: { padding: isMobile ? 0 : undefined } }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '24px', width: '100%' }}>
                                     {/* Header */}
                                     {isMobile ? (
