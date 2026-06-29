@@ -35,13 +35,7 @@ export default function CustomerRead() {
             const response = await request.pdf({ entity: `customer/${id}/pdf-details` });
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Customer_${client.name}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
         } catch (error) {
             console.error(error);
         }

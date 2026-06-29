@@ -118,6 +118,7 @@ export default function VillaCreate() {
                                     <Select.Option value="3BHK">3BHK</Select.Option>
                                     <Select.Option value="4BHK">4BHK</Select.Option>
                                     <Select.Option value="5BHK">5BHK</Select.Option>
+                                    <Select.Option value="6BHK">6BHK</Select.Option>
                                     <Select.Option value="Other">Other</Select.Option>
                                 </Select>
                             </Form.Item>

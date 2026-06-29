@@ -218,14 +218,8 @@ export default function BookingRead() {
 
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Receipt_${record.name}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            message.success({ content: 'Receipt Downloaded', key: 'pdf_download' });
+            window.open(url, '_blank');
+            message.success({ content: 'Receipt Generated', key: 'pdf_download' });
         } catch (error) {
             console.error(error);
             message.error({ content: 'Failed to download receipt', key: 'pdf_download' });

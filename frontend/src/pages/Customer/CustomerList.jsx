@@ -105,16 +105,10 @@ const CustomerList = () => {
             const response = await request.pdf({ entity: `customer/${record._id}/pdf-details` });
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Customer_${record.name}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
         } catch (error) {
             console.error(error);
-            message.error('Failed to download PDF');
+            message.error('Failed to generate PDF');
         }
     };
 

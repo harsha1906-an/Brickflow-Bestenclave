@@ -22,9 +22,11 @@ import {
   ToolOutlined,
   LogoutOutlined,
   HistoryOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  ScanOutlined,
+  MenuOutlined
 } from '@ant-design/icons';
-import { Avatar, Dropdown, Button, ConfigProvider } from 'antd';
+import { Avatar, Dropdown, Button, ConfigProvider, Drawer, Divider } from 'antd';
 import { useSelector } from 'react-redux';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import useLanguage from '@/locale/useLanguage';
@@ -46,6 +48,7 @@ export default function ProAppLayout({ children }) {
   const logo = logoDark;
 
   const [pathname, setPathname] = useState(location.pathname);
+  const [moreDrawerVisible, setMoreDrawerVisible] = useState(false);
 
   // Mapped from NavigationContainer.jsx
   const menuData = [
@@ -60,6 +63,7 @@ export default function ProAppLayout({ children }) {
     { path: '/attendance', name: 'Attendance', icon: <TagOutlined /> },
     { path: '/pettycash', name: 'Petty Cash', icon: <WalletOutlined /> },
     { path: '/daily-summary', name: 'Daily Expenses', icon: <ContainerOutlined /> },
+    { path: '/scan-bills', name: 'Scan Bills', icon: <ScanOutlined /> },
     { path: '/reports', name: 'Reports', icon: <FileTextOutlined /> },
     { path: '/villa-reports', name: 'Villa Reports', icon: <ProjectOutlined /> },
     { path: '/expense', name: 'Expenses', icon: <DollarOutlined /> },
@@ -70,6 +74,29 @@ export default function ProAppLayout({ children }) {
     { path: '/audit-logs', name: translate('Activity Logs'), icon: <HistoryOutlined /> },
     { path: '/settings', name: translate('settings'), icon: <SettingOutlined /> },
     { path: '/about', name: translate('about'), icon: <ReconciliationOutlined /> },
+  ];
+
+  const operationsMenu = [
+    { path: '/lead', name: 'Leads', icon: <CustomerServiceOutlined /> },
+    { path: '/customer', name: 'Customers', icon: <CustomerServiceOutlined /> },
+    { path: '/villa', name: 'Villas', icon: <ShopOutlined /> },
+    { path: '/booking', name: 'Bookings', icon: <FileDoneOutlined /> },
+    { path: '/supplier', name: 'Suppliers', icon: <TeamOutlined /> },
+    { path: '/inventory', name: 'Inventory', icon: <FileProtectOutlined /> },
+    { path: '/labour', name: 'Labour', icon: <UserOutlined /> },
+    { path: '/pettycash', name: 'Petty Cash', icon: <WalletOutlined /> },
+    { path: '/expense', name: 'Expenses List', icon: <DollarOutlined /> },
+    { path: '/payment', name: 'Payments', icon: <CreditCardOutlined /> },
+    { path: '/quote', name: 'Quotes', icon: <FileSyncOutlined /> },
+    { path: '/approvals', name: 'Approvals', icon: <FileProtectOutlined /> },
+    { path: '/taxes', name: 'Taxes', icon: <ShopOutlined /> },
+  ];
+
+  const reportsMenu = [
+    { path: '/reports', name: 'Reports', icon: <FileTextOutlined /> },
+    { path: '/villa-reports', name: 'Villa Reports', icon: <ProjectOutlined /> },
+    { path: '/audit-logs', name: 'Activity Logs', icon: <HistoryOutlined /> },
+    { path: '/about', name: 'About', icon: <ReconciliationOutlined /> },
   ];
 
   const menuProps = {
@@ -97,6 +124,11 @@ export default function ProAppLayout({ children }) {
     label: <Link to={'/settings'}>{translate('app_settings')}</Link>,
     key: 'settings',
     icon: <ToolOutlined />,
+  };
+
+  const handleMobileNavClick = (path) => {
+    setMoreDrawerVisible(false);
+    navigate(path);
   };
 
   return (
@@ -201,7 +233,8 @@ export default function ProAppLayout({ children }) {
       >
         <div style={{ 
           minHeight: '100vh',
-          paddingTop: '80px', /* Ensure content is pushed below fixed header */
+          paddingTop: isMobile ? '64px' : '80px', /* Ensure content is pushed below fixed header */
+          paddingBottom: isMobile ? '80px' : '24px', /* Pad bottom on mobile to avoid bottom nav overlay */
           paddingInline: isMobile ? '12px' : '24px',
           overflow: 'auto',
           width: '100%',
@@ -231,6 +264,284 @@ export default function ProAppLayout({ children }) {
         )}
 
       </ProLayout>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '60px',
+          backgroundColor: isDarkMode ? '#141414' : '#ffffff',
+          borderTop: isDarkMode ? '1px solid #303030' : '1px solid #f0f0f0',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+          zIndex: 1000,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+          paddingBottom: 'safe-area-inset-bottom'
+        }}>
+          <div 
+            onClick={() => navigate('/')} 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: location.pathname === '/' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
+              cursor: 'pointer',
+              fontSize: '11px',
+              flex: 1
+            }}
+          >
+            <DashboardOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
+            <span>Dashboard</span>
+          </div>
+
+          <div 
+            onClick={() => navigate('/daily-summary')} 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: location.pathname === '/daily-summary' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
+              cursor: 'pointer',
+              fontSize: '11px',
+              flex: 1
+            }}
+          >
+            <ContainerOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
+            <span>Expenses</span>
+          </div>
+
+          <div 
+            onClick={() => navigate('/scan-bills')} 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: location.pathname === '/scan-bills' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
+              cursor: 'pointer',
+              fontSize: '11px',
+              flex: 1
+            }}
+          >
+            <ScanOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
+            <span>Scan Bills</span>
+          </div>
+
+          <div 
+            onClick={() => navigate('/attendance')} 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: location.pathname === '/attendance' ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
+              cursor: 'pointer',
+              fontSize: '11px',
+              flex: 1
+            }}
+          >
+            <TagOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
+            <span>Attendance</span>
+          </div>
+
+          <div 
+            onClick={() => setMoreDrawerVisible(true)} 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: moreDrawerVisible ? '#1890ff' : (isDarkMode ? '#888' : '#666'),
+              cursor: 'pointer',
+              fontSize: '11px',
+              flex: 1
+            }}
+          >
+            <MenuOutlined style={{ fontSize: '20px', marginBottom: '2px' }} />
+            <span>More</span>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile More Navigation Drawer */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <MenuOutlined style={{ color: '#1890ff' }} />
+            <span>More Features</span>
+          </div>
+        }
+        placement="bottom"
+        onClose={() => setMoreDrawerVisible(false)}
+        open={moreDrawerVisible}
+        height="80vh"
+        bodyStyle={{ 
+          padding: '16px', 
+          backgroundColor: isDarkMode ? '#141414' : '#fafafa',
+          overflowY: 'auto'
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Operations Section */}
+          <div>
+            <h4 style={{ 
+              color: isDarkMode ? '#888' : '#999', 
+              marginBottom: 12, 
+              textTransform: 'uppercase', 
+              fontSize: '11px', 
+              letterSpacing: '0.5px',
+              fontWeight: 'bold'
+            }}>
+              Operations & Management
+            </h4>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px',
+            }}>
+              {operationsMenu.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleMobileNavClick(item.path)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '12px 6px',
+                    borderRadius: '8px',
+                    backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                    border: isDarkMode ? '1px solid #303030' : '1px solid #e8e8e8',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    color: location.pathname === item.path ? '#1890ff' : (isDarkMode ? '#ddd' : '#555'),
+                  }}
+                >
+                  <div style={{ fontSize: '20px', marginBottom: '6px', color: location.pathname === item.path ? '#1890ff' : '#888' }}>
+                    {item.icon}
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 500, lineHeight: 1.2 }}>{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          {/* Reports & Logs */}
+          <div>
+            <h4 style={{ 
+              color: isDarkMode ? '#888' : '#999', 
+              marginBottom: 12, 
+              textTransform: 'uppercase', 
+              fontSize: '11px', 
+              letterSpacing: '0.5px',
+              fontWeight: 'bold'
+            }}>
+              Reports & Activity
+            </h4>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+            }}>
+              {reportsMenu.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleMobileNavClick(item.path)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                    border: isDarkMode ? '1px solid #303030' : '1px solid #e8e8e8',
+                    cursor: 'pointer',
+                    color: location.pathname === item.path ? '#1890ff' : (isDarkMode ? '#ddd' : '#555'),
+                  }}
+                >
+                  <div style={{ fontSize: '18px', color: location.pathname === item.path ? '#1890ff' : '#888' }}>
+                    {item.icon}
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 500 }}>{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Divider style={{ margin: '8px 0' }} />
+
+          {/* Settings Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div
+              onClick={() => handleMobileNavClick('/profile')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                border: isDarkMode ? '1px solid #303030' : '1px solid #e8e8e8',
+                cursor: 'pointer',
+                color: isDarkMode ? '#ddd' : '#555'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <UserOutlined style={{ fontSize: '16px', color: '#1890ff' }} />
+                <span style={{ fontSize: '13px' }}>Profile Settings</span>
+              </div>
+            </div>
+
+            <div
+              onClick={() => handleMobileNavClick('/settings')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                border: isDarkMode ? '1px solid #303030' : '1px solid #e8e8e8',
+                cursor: 'pointer',
+                color: isDarkMode ? '#ddd' : '#555'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <SettingOutlined style={{ fontSize: '16px', color: '#52c41a' }} />
+                <span style={{ fontSize: '13px' }}>App Settings</span>
+              </div>
+            </div>
+
+            <div
+              onClick={() => handleMobileNavClick('/logout')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: isDarkMode ? '#2c1414' : '#fff1f0',
+                border: isDarkMode ? '1px solid #5c2424' : '1px solid #ffa39e',
+                cursor: 'pointer',
+                color: '#f5222d'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <LogoutOutlined style={{ fontSize: '16px', color: '#f5222d' }} />
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Logout</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }

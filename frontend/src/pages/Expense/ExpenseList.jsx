@@ -9,7 +9,7 @@ import { request } from '@/request';
 import SelectAsync from '@/components/SelectAsync';
 import dayjs from 'dayjs';
 import storePersist from '@/redux/storePersist';
-import { API_BASE_URL } from '@/config/serverApiConfig';
+import { API_BASE_URL, DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 
 const { RangePicker } = DatePicker;
 
@@ -163,6 +163,38 @@ export default function ExpenseList() {
         window.open(url, '_blank');
     };
 
+    const handleDownloadVoucher = async (expenseId) => {
+        if (!expenseId) return;
+        try {
+            message.loading({ content: 'Generating Voucher...', key: 'voucher_download' });
+            
+            const auth = storePersist.get('auth');
+            const token = auth?.current?.token;
+            
+            const downloadUrl = `${DOWNLOAD_BASE_URL}expense/expense-${expenseId}.pdf`;
+            
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to download voucher');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            
+            message.success({ content: 'Voucher Generated', key: 'voucher_download' });
+        } catch (error) {
+            console.error('Voucher download error:', error);
+            message.error({ content: 'Failed to download voucher.', key: 'voucher_download' });
+        }
+    };
+
     const columns = [
         {
             title: translate('Number'),
@@ -206,6 +238,19 @@ export default function ExpenseList() {
             dataIndex: 'description',
             key: 'description',
             ellipsis: true,
+        },
+        {
+            title: translate('Action'),
+            key: 'action',
+            render: (_, record) => (
+                <Button 
+                    type="link" 
+                    icon={<DownloadOutlined />} 
+                    onClick={() => handleDownloadVoucher(record._id)}
+                >
+                    Voucher
+                </Button>
+            )
         }
     ];
 
@@ -293,6 +338,7 @@ export default function ExpenseList() {
                                         { value: 'electrician', label: 'Electrician' },
                                         { value: 'plumber', label: 'Plumber' },
                                         { value: 'helper', label: 'Helper' },
+                                        { value: 'staff', label: 'Staff' },
                                     ]}
                                 />
                             </Col>
@@ -312,6 +358,8 @@ export default function ExpenseList() {
                                         { value: 'all', label: 'All Types' },
                                         { value: 'cement', label: 'Cement' },
                                         { value: 'aggregate', label: 'Aggregate' },
+                                        { value: 'stones_bolders', label: 'Size Stones / Bolders' },
+                                        { value: 'waterproofing_chemicals', label: 'Waterproofing Chemicals' },
                                         { value: 'steel', label: 'Steel' },
                                         { value: 'rods', label: 'Rods' },
                                         { value: 'bricks', label: 'Bricks' },

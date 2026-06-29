@@ -33,6 +33,8 @@ export default function SupplierList() {
                 const typeLabels = {
                     cement: 'Cement',
                     aggregate: 'Aggregate',
+                    stones_bolders: 'Size Stones / Bolders',
+                    waterproofing_chemicals: 'Waterproofing Chemicals',
                     steel: 'Steel',
                     rods: 'Steel Rods',
                     bricks: 'Bricks',
@@ -100,6 +102,8 @@ export default function SupplierList() {
                 const typeLabels = {
                     cement: 'Cement',
                     aggregate: 'Aggregate',
+                    stones_bolders: 'Size Stones / Bolders',
+                    waterproofing_chemicals: 'Waterproofing Chemicals',
                     steel: 'Steel',
                     rods: 'Steel Rods',
                     bricks: 'Bricks',
@@ -177,13 +181,7 @@ export default function SupplierList() {
 
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Supplier_${record.name}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
 
             // Close modal after a short delay
             setTimeout(() => {
@@ -233,7 +231,7 @@ export default function SupplierList() {
                 <div style={{ textAlign: 'center' }}>
                     <Progress type="circle" percent={progress} width={80} status={progress === 100 ? 'success' : 'active'} />
                     <div style={{ marginTop: '15px', fontSize: '13px' }}>
-                        {progress < 100 ? 'Generating PDF...' : 'Download Complete!'}
+                        {progress < 100 ? 'Generating PDF...' : 'Report Generated!'}
                     </div>
                 </div>
             </Modal>

@@ -16,6 +16,8 @@ export default function SupplierForm({ isUpdateForm = false }) {
     const supplierTypeOptions = [
         { value: 'cement', label: 'Cement' },
         { value: 'aggregate', label: 'Aggregate (Sand, Gravel)' },
+        { value: 'stones_bolders', label: 'Size Stones / Bolders' },
+        { value: 'waterproofing_chemicals', label: 'Waterproofing Chemicals' },
         { value: 'steel', label: 'Steel' },
         { value: 'rods', label: 'Steel Rods/Bars (TMT)' },
         { value: 'bricks', label: 'Bricks & Blocks' },

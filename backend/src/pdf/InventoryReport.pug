@@ -68,7 +68,7 @@ html
             tr
               td #{moment(item.date).format(dateFormat)}
               td #{item.material ? item.material.name : '-'}
-              td #{item.type == 'inward' ? 'IN' : 'OUT'}
+              td #{item.usageCategory == 'transfer' ? 'TRANSFER' : (item.type == 'inward' ? 'IN' : 'OUT')}
               td #{item.villa ? 'Villa ' + item.villa.villaNumber : 'Global'}
               td #{item.quantity} #{item.material ? item.material.unit : ''}
               td #{item.reference}

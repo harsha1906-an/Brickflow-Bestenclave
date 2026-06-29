@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import { request } from '@/request';
-import { Form, Input, InputNumber, Select, Radio, Checkbox, Divider, Descriptions } from 'antd';
+import { Form, Input, InputNumber, Select, Radio, Checkbox, Divider, Descriptions, Row, Col } from 'antd';
 import { DatePicker } from 'antd';
 import SelectAsync from '@/components/SelectAsync';
 import { useMoney, useDate } from '@/settings';
 import useLanguage from '@/locale/useLanguage';
 import { useAppContext } from '@/context/appContext';
 import numberToWords from '@/utils/numberToWords';
+import BillScanner from '@/components/BillScanner';
 
 export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) {
     const translate = useLanguage();
@@ -19,12 +20,48 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
     const { state } = useAppContext();
     const companyId = state.currentCompany;
 
+    const [useCalculator, setUseCalculator] = useState(false);
+    const [calcRate, setCalcRate] = useState(0);
+    const [calcHours, setCalcHours] = useState(0);
+    const [calcBetta, setCalcBetta] = useState(0);
+    const [calcExtra, setCalcExtra] = useState(0);
+    const [calcAdvance, setCalcAdvance] = useState(0);
+    const [calcBalance, setCalcBalance] = useState(0);
+
+    useEffect(() => {
+        if (useCalculator) {
+            const calculatedTotal = (calcRate || 0) * (calcHours || 0) + (calcBetta || 0) + (calcExtra || 0);
+            const calculatedAmount = Math.max(0, calculatedTotal - (calcAdvance || 0) - (calcBalance || 0));
+            form.setFieldsValue({ 
+                amount: calculatedAmount,
+                totalAmount: calculatedTotal,
+                advance: calcAdvance,
+                balance: calcBalance,
+                betta: calcBetta,
+                extra: calcExtra
+            });
+        }
+    }, [calcRate, calcHours, calcBetta, calcExtra, calcAdvance, calcBalance, useCalculator, form]);
+
     const recipientType = Form.useWatch('recipientType', form);
     const amount = Form.useWatch('amount', form);
     const supplierId = Form.useWatch('supplier', form);
     const projectId = Form.useWatch('project', form);
     const paymentType = Form.useWatch('paymentType', form);
     const taxRate = Form.useWatch('taxRate', form);
+
+    const totalAmount = Form.useWatch('totalAmount', form);
+    const advance = Form.useWatch('advance', form);
+    const balance = Form.useWatch('balance', form);
+
+    useEffect(() => {
+        if (!useCalculator) {
+            const currentTotal = parseFloat(totalAmount) || 0;
+            const currentAdvance = parseFloat(advance) || 0;
+            const currentBalance = parseFloat(balance) || 0;
+            form.setFieldsValue({ amount: Math.max(0, currentTotal - currentAdvance - currentBalance) });
+        }
+    }, [totalAmount, advance, balance, useCalculator, form]);
 
     const [supplierState, setSupplierState] = useState(null);
     const [projectState, setProjectState] = useState(null);
@@ -108,6 +145,58 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
             <Form.Item name="companyId" hidden>
                 <Input />
             </Form.Item>
+            <Form.Item style={{ marginBottom: 20, textAlign: 'right' }}>
+                <BillScanner onScanSuccess={async (data) => {
+                    if (!data) return;
+
+                    const updates = {};
+                    if (data.invoiceNumber) {
+                        updates.reference = data.invoiceNumber;
+                    }
+                    if (data.totalAmount) {
+                        const baseAmount = data.totalAmount - (data.taxAmount || 0);
+                        updates.amount = baseAmount;
+                        updates.totalAmount = data.totalAmount;
+                        if (data.taxAmount) {
+                            updates.taxAmount = data.taxAmount;
+                            if (baseAmount > 0) {
+                                updates.taxRate = Math.round((data.taxAmount / baseAmount) * 100);
+                            }
+                        }
+                    }
+                    if (data.date) {
+                        updates.date = dayjs(data.date);
+                    }
+                    if (data.supplierName) {
+                        try {
+                            const searchRes = await request.search({
+                                entity: 'supplier',
+                                options: { q: data.supplierName, fields: 'name' }
+                            });
+                            if (searchRes.success && searchRes.result.length > 0) {
+                                const matchedSupplier = searchRes.result[0];
+                                updates.recipientType = 'Supplier';
+                                updates.supplier = matchedSupplier._id;
+                            } else {
+                                updates.recipientType = 'Other';
+                                updates.otherRecipient = data.supplierName;
+                            }
+                        } catch (e) {
+                            console.error('Failed to match supplier:', e);
+                            updates.recipientType = 'Other';
+                            updates.otherRecipient = data.supplierName;
+                        }
+                    }
+
+                    let desc = `Auto-scanned bill.`;
+                    if (data.items && data.items.length > 0) {
+                        desc += ` Items: ` + data.items.map(item => `${item.name} (${item.quantity} @ ${item.rate})`).join(', ');
+                    }
+                    updates.description = desc;
+
+                    form.setFieldsValue(updates);
+                }} />
+            </Form.Item>
             <Form.Item
                 label={translate('number')}
                 name="number"
@@ -188,13 +277,61 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
                 )}
 
                 {recipientType === 'Other' && (
-                    <Form.Item
-                        label={translate('Payee Name')}
-                        name="otherRecipient"
-                        rules={[{ required: true, message: 'Please enter payee name' }]}
-                    >
-                        <Input placeholder="e.g. Service Provider Name" />
-                    </Form.Item>
+                    <>
+                        <Form.Item
+                            label={translate('Payee Name')}
+                            name="otherRecipient"
+                            rules={[{ required: true, message: 'Please enter payee name' }]}
+                        >
+                            <Input placeholder="e.g. Service Provider Name" />
+                        </Form.Item>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <Form.Item label={translate('Total Amount')} name="totalAmount" style={{ flex: 1 }} initialValue={0}>
+                                <InputNumber
+                                    min={0}
+                                    controls={false}
+                                    addonBefore={money.currency_position === 'before' ? money.currency_symbol : undefined}
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+                        </div>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <Form.Item label={translate('Advance Paid')} name="advance" style={{ flex: 1 }} initialValue={0}>
+                                <InputNumber
+                                    min={0}
+                                    controls={false}
+                                    addonBefore={money.currency_position === 'before' ? money.currency_symbol : undefined}
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+                            <Form.Item label={translate('Balance Remaining')} name="balance" style={{ flex: 1 }} initialValue={0}>
+                                <InputNumber
+                                    min={0}
+                                    controls={false}
+                                    addonBefore={money.currency_position === 'before' ? money.currency_symbol : undefined}
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+                        </div>
+                        <div style={{ display: 'flex', gap: '20px' }}>
+                            <Form.Item label={translate('Betta')} name="betta" style={{ flex: 1 }} initialValue={0}>
+                                <InputNumber
+                                    min={0}
+                                    controls={false}
+                                    addonBefore={money.currency_position === 'before' ? money.currency_symbol : undefined}
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+                            <Form.Item label={translate('Extra')} name="extra" style={{ flex: 1 }} initialValue={0}>
+                                <InputNumber
+                                    min={0}
+                                    controls={false}
+                                    addonBefore={money.currency_position === 'before' ? money.currency_symbol : undefined}
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+                        </div>
+                    </>
                 )}
             </div>
 
@@ -234,7 +371,7 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
 
                         {/* Hidden fields to store calculated values */}
                         <Form.Item name="taxAmount" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="totalAmount" hidden><InputNumber /></Form.Item>
+                        {recipientType !== 'Other' && <Form.Item name="totalAmount" hidden><InputNumber /></Form.Item>}
                         <Form.Item name="taxType" hidden><Input /></Form.Item>
 
                         {/* Tax Breakdown Display */}
@@ -280,6 +417,93 @@ export default function ExpenseForm({ maxAmount = null, isUpdateForm = false }) 
             >
                 <DatePicker format={dateFormat} style={{ width: '100%' }} />
             </Form.Item>
+
+            <div style={{ marginBottom: '15px' }}>
+                <Checkbox 
+                    checked={useCalculator} 
+                    onChange={(e) => setUseCalculator(e.target.checked)}
+                >
+                    Use Hourly / Qty Calculator
+                </Checkbox>
+            </div>
+
+            {useCalculator && (
+                <div style={{ background: 'rgba(24, 144, 255, 0.05)', border: '1px solid rgba(24, 144, 255, 0.3)', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#1890ff' }}>Hourly / Qty Calculator</h4>
+                    <Row gutter={16} style={{ marginBottom: '10px' }}>
+                        <Col span={12}>
+                            <Form.Item label="Rate per Hour/Unit" required style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcRate}
+                                    onChange={(val) => setCalcRate(val || 0)}
+                                    placeholder="Rate"
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Hours / Quantity" required style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcHours}
+                                    onChange={(val) => setCalcHours(val || 0)}
+                                    placeholder="Hours / Qty"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={16} style={{ marginBottom: '10px' }}>
+                        <Col span={12}>
+                            <Form.Item label="Betta" style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcBetta}
+                                    onChange={(val) => setCalcBetta(val || 0)}
+                                    placeholder="Betta"
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Extra Charge" style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcExtra}
+                                    onChange={(val) => setCalcExtra(val || 0)}
+                                    placeholder="Extra"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item label="Advance" style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcAdvance}
+                                    onChange={(val) => setCalcAdvance(val || 0)}
+                                    placeholder="Advance"
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Balance" style={{ marginBottom: 0 }}>
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: '100%' }}
+                                    value={calcBalance}
+                                    onChange={(val) => setCalcBalance(val || 0)}
+                                    placeholder="Balance"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </div>
+            )}
 
             <Form.Item label={translate('amount')} name="amount" rules={[{ required: true }]}>
                 <InputNumber

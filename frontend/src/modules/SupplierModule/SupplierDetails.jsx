@@ -16,6 +16,8 @@ import useLanguage from '@/locale/useLanguage';
 import { request } from '@/request';
 import SupplierForm from '@/forms/SupplierForm';
 import dayjs from 'dayjs';
+import storePersist from '@/redux/storePersist';
+import { API_BASE_URL, DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 
 const SupplierDetails = ({ item, config }) => {
     const translate = useLanguage();
@@ -37,6 +39,20 @@ const SupplierDetails = ({ item, config }) => {
         totalPaid: 0,
         balance: 0
     });
+
+    const handleDownloadSupplierDetails = () => {
+        const auth = storePersist.get('auth');
+        const token = auth?.current?.token;
+        const url = `${API_BASE_URL}supplier/${item._id}/pdf-details?token=${token}`;
+        window.open(url, '_blank');
+    };
+
+    const handleDownloadReceipt = (expenseId) => {
+        const auth = storePersist.get('auth');
+        const token = auth?.current?.token;
+        const url = `${DOWNLOAD_BASE_URL}expense/expense-${expenseId}.pdf?token=${token}`;
+        window.open(url, '_blank');
+    };
 
     useEffect(() => {
         if (item?._id) {
@@ -95,7 +111,7 @@ const SupplierDetails = ({ item, config }) => {
             const totalMaterialCost = enrichedTransactions
                 .reduce((sum, t) => sum + (t.totalCost || 0), 0);
 
-            const totalPaid = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+            const totalPaid = expenses.reduce((sum, e) => sum + (e.totalAmount !== undefined ? e.totalAmount : (e.amount || 0)), 0);
 
             setFinancials({
                 totalMaterialCost,
@@ -125,7 +141,8 @@ const SupplierDetails = ({ item, config }) => {
     };
 
     const inventoryColumns = [
-        { title: 'Date', dataIndex: 'date', render: d => formatDate(d) },
+        { title: 'Arrival Date', dataIndex: 'date', render: d => formatDate(d) },
+        { title: 'Entry Date (Detected)', dataIndex: 'entryDate', render: d => d ? dayjs(d).format(dateFormat + ' HH:mm') : '-' },
         { title: 'Item', dataIndex: ['material', 'name'] },
         { title: 'Qty', dataIndex: 'quantity', render: (q, r) => `${q} ${r.material?.unit || ''}` },
         { title: 'Cost', dataIndex: 'totalCost', align: 'right', render: amount => moneyFormatter({ amount }) },
@@ -136,10 +153,26 @@ const SupplierDetails = ({ item, config }) => {
 
     const expenseColumns = [
         { title: 'Date', dataIndex: 'date', render: d => formatDate(d) },
-        { title: 'Amount', dataIndex: 'amount', align: 'right', render: amount => moneyFormatter({ amount }) },
+        { title: 'Amount', dataIndex: 'totalAmount', align: 'right', render: (val, record) => moneyFormatter({ amount: val !== undefined ? val : record.amount }) },
         { title: 'Mode', dataIndex: 'paymentMode', render: m => <Tag color="blue">{m}</Tag> },
         { title: 'Ref', dataIndex: 'reference' },
-        { title: 'Description', dataIndex: 'description', ellipsis: true }
+        { title: 'Description', dataIndex: 'description', ellipsis: true },
+        {
+            title: 'Receipt',
+            dataIndex: '_id',
+            width: 80,
+            align: 'center',
+            render: (expenseId) => (
+                <Tooltip title="Download Receipt">
+                    <Button
+                        type="text"
+                        shape="circle"
+                        icon={<FilePdfOutlined style={{ color: '#ff4d4f' }} />}
+                        onClick={() => handleDownloadReceipt(expenseId)}
+                    />
+                </Tooltip>
+            )
+        }
     ];
 
     return (
@@ -154,6 +187,8 @@ const SupplierDetails = ({ item, config }) => {
                                 const typeLabels = {
                                     cement: 'Cement',
                                     aggregate: 'Aggregate',
+                                    stones_bolders: 'Size Stones / Bolders',
+                                    waterproofing_chemicals: 'Waterproofing Chemicals',
                                     steel: 'Steel',
                                     rods: 'Steel Rods',
                                     bricks: 'Bricks',
@@ -179,6 +214,8 @@ const SupplierDetails = ({ item, config }) => {
                             const typeLabels = {
                                 cement: 'Cement',
                                 aggregate: 'Aggregate',
+                                stones_bolders: 'Size Stones / Bolders',
+                                waterproofing_chemicals: 'Waterproofing Chemicals',
                                 steel: 'Steel',
                                 rods: 'Steel Rods',
                                 bricks: 'Bricks',
@@ -203,6 +240,13 @@ const SupplierDetails = ({ item, config }) => {
                 extra={[
                     <Button key="close" onClick={() => navigate('/supplier')} icon={<CloseCircleOutlined />}>
                         {translate('Close')}
+                    </Button>,
+                    <Button
+                        key="download-pdf"
+                        onClick={handleDownloadSupplierDetails}
+                        icon={<FilePdfOutlined />}
+                    >
+                        PDF
                     </Button>,
                     <Button
                         key="edit"
@@ -411,15 +455,19 @@ const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, curren
                 amountPaid: allocations[key] || 0
             })).filter(sp => sp.amountPaid > 0);
 
-            // Calculate tax
+            // Calculate tax, discount, roundOff
             const taxRate = values.taxRate || 0;
             const taxAmount = values.amount * (taxRate / 100);
-            const totalAmount = values.amount + taxAmount;
+            const discount = values.discount || 0;
+            const roundOff = values.roundOff || 0;
+            const totalAmount = values.amount + taxAmount - discount + roundOff;
 
             const payload = {
                 ...values,
                 taxRate,
                 taxAmount,
+                discount,
+                roundOff,
                 totalAmount,
                 recipientType: 'Supplier',
                 supplier: supplier._id, // Enforce current supplier
@@ -446,6 +494,8 @@ const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, curren
                 recipientType: 'Supplier',
                 supplier: supplier._id,
                 amount: 0,
+                discount: 0,
+                roundOff: 0,
                 gstin: supplier?.taxNumber || ''
             }}
         >
@@ -471,7 +521,9 @@ const PaymentWrapper = ({ supplier, onSuccess, maxAmount, moneyFormatter, curren
                     const amount = form.getFieldValue('amount') || 0;
                     const taxRate = form.getFieldValue('taxRate') || 0;
                     const taxAmount = amount * (taxRate / 100);
-                    const totalAmount = amount + taxAmount;
+                    const discount = form.getFieldValue('discount') || 0;
+                    const roundOff = form.getFieldValue('roundOff') || 0;
+                    const totalAmount = amount + taxAmount - discount + roundOff;
                     
                     return (
                         <Button 
@@ -506,6 +558,25 @@ const QuickPaymentForm = ({ currency_symbol }) => {
                             style={{ width: '100%' }}
                             addonBefore={currency_symbol}
                             disabled
+                        />
+                    </Form.Item>
+                </Col>
+            </Row>
+            <Row gutter={16}>
+                <Col span={12}>
+                    <Form.Item name="discount" label="Discount">
+                        <InputNumber
+                            min={0}
+                            style={{ width: '100%' }}
+                            addonBefore={currency_symbol}
+                        />
+                    </Form.Item>
+                </Col>
+                <Col span={12}>
+                    <Form.Item name="roundOff" label="Round Off">
+                        <InputNumber
+                            style={{ width: '100%' }}
+                            addonBefore={currency_symbol}
                         />
                     </Form.Item>
                 </Col>

@@ -104,6 +104,9 @@ const AttendanceReport = ({ onBack }) => {
                         val = `OT(${att.otHours})`;
                         presentCount++;
                         totalOt += (att.otHours || 0);
+                    } else if (att.status === 'casual-leave') {
+                        val = 'CL';
+                        if (att.wage > 0) presentCount++;
                     }
                     totalWage += (att.wage || 0);
                 }
@@ -151,6 +154,7 @@ const AttendanceReport = ({ onBack }) => {
                     if (att.status === 'absent') return <Tag color="red" style={{ margin: 0 }}>A</Tag>;
                     if (att.status === 'half-day') return <Tag color="orange" style={{ margin: 0 }}>HD</Tag>;
                     if (att.status === 'overtime') return <Tag color="purple" style={{ margin: 0 }}>OT</Tag>;
+                    if (att.status === 'casual-leave') return <Tag color="blue" style={{ margin: 0 }}>CL</Tag>;
                     return att.status;
                 }
             };
@@ -165,6 +169,7 @@ const AttendanceReport = ({ onBack }) => {
                 const count = values.reduce((acc, curr) => {
                     if (curr.status === 'present' || curr.status === 'overtime') return acc + 1;
                     if (curr.status === 'half-day') return acc + 0.5;
+                    if (curr.status === 'casual-leave' && curr.wage > 0) return acc + 1;
                     return acc;
                 }, 0);
                 return <strong>{count}</strong>;

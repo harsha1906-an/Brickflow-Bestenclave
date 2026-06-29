@@ -67,6 +67,7 @@ const routerApp = (entity, controller) => {
 };
 
 router.route('/dashboard/chart-data').get(catchErrors(chartDataController));
+router.route('/global-search').get(catchErrors(appControllers.globalSearchController.search));
 
 routesList.forEach(({ entity, controllerName }) => {
   const controller = appControllers[controllerName];

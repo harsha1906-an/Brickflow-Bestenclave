@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Divider, Button, Row, Col, Descriptions, Statistic, Modal, Input, App, Popconfirm, Alert, InputNumber } from 'antd';
+import { Divider, Button, Row, Col, Descriptions, Statistic, Modal, Input, App, Popconfirm, Alert, InputNumber, DatePicker } from 'antd';
+import dayjs from 'dayjs';
 import { PageHeader } from '@ant-design/pro-layout';
 import {
     EditOutlined,
@@ -71,6 +72,7 @@ export default function ReadPurchaseOrder({ config }) {
     // Modal for Receive Goods (GRN)
     const [isReceiveModalVisible, setIsReceiveModalVisible] = useState(false);
     const [receiveItems, setReceiveItems] = useState([]);
+    const [receiveDate, setReceiveDate] = useState(dayjs());
 
     useEffect(() => {
         if (currentResult) {
@@ -86,6 +88,7 @@ export default function ReadPurchaseOrder({ config }) {
                 itemName: item.itemName,
                 quantityReceived: item.quantity, // Default to full receipt
             })));
+            setReceiveDate(dayjs());
         }
     }, [isReceiveModalVisible, itemslist]);
 
@@ -110,7 +113,8 @@ export default function ReadPurchaseOrder({ config }) {
                 jsonData: {
                     purchaseOrderId: currentErp._id,
                     items: receiveItems,
-                    notes: 'Generated from PO'
+                    notes: 'Generated from PO',
+                    date: receiveDate ? receiveDate.format('YYYY-MM-DD') : undefined
                 }
             });
             message.success('Goods Received and Inventory Updated');
@@ -305,7 +309,16 @@ export default function ReadPurchaseOrder({ config }) {
                 okText="Confirm Receipt"
                 width={600}
             >
-                <p>Confirm the quantity received for each item:</p>
+                <div style={{ marginBottom: 20 }}>
+                    <span style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Receipt Date</span>
+                    <DatePicker 
+                        style={{ width: '100%' }} 
+                        value={receiveDate} 
+                        onChange={(date) => setReceiveDate(date)} 
+                        allowClear={false}
+                    />
+                </div>
+                <p style={{ fontWeight: 500, marginBottom: 12 }}>Confirm the quantity received for each item:</p>
                 {receiveItems.map((item, index) => (
                     <Row key={index} style={{ marginBottom: 10 }} align="middle">
                         <Col span={12}><strong>{item.itemName}</strong></Col>

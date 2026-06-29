@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Button, Divider, Row, Col, Table, Tag, Space, App, Typography, Checkbox, theme, Select } from 'antd';
+import { Modal, Form, Input, InputNumber, Button, Divider, Row, Col, Table, Tag, Space, App, Typography, Checkbox, theme, Select, Switch, Popconfirm } from 'antd';
 import axios from 'axios';
 import useMoney from '@/settings/useMoney';
-import { PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined } from '@ant-design/icons';
-import { BASE_URL } from '@/config/serverApiConfig';
+import { PlusOutlined, DeleteOutlined, SaveOutlined, FilePdfOutlined, EditOutlined } from '@ant-design/icons';
+import { BASE_URL, DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
 import { request } from '@/request';
 import useLanguage from '@/locale/useLanguage';
 import SelectAsync from '@/components/SelectAsync';
@@ -21,6 +21,7 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
     const [contracts, setContracts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [addingContract, setAddingContract] = useState(false);
+    const [editingContract, setEditingContract] = useState(null);
 
     const [completionModalOpen, setCompletionModalOpen] = useState(false);
     const [completingData, setCompletingData] = useState(null);
@@ -48,14 +49,39 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
     };
 
     useEffect(() => {
+        const handleUndo = () => fetchContracts();
+        window.addEventListener('undo-delete-refresh', handleUndo);
+        return () => window.removeEventListener('undo-delete-refresh', handleUndo);
+    });
+
+    const [currentLabour, setCurrentLabour] = useState(null);
+
+    const fetchLabourDetails = async () => {
+        try {
+            const res = await request.read({ entity: 'labour', id: labour._id });
+            if (res.success && res.result) {
+                setCurrentLabour(res.result);
+            }
+        } catch (e) {
+            console.error('Failed to fetch labour details:', e);
+        }
+    };
+
+    useEffect(() => {
         if (visible && labour?._id) {
-            // Clear previous labour's contracts first
+            // Clear previous labour's contracts and reset form
             setContracts([]);
+            form.resetFields();
+            setCurrentLabour(null);
+            setEditingContract(null);
             fetchContracts();
+            fetchLabourDetails();
         }
         // Clear contracts when modal closes
         if (!visible) {
             setContracts([]);
+            setCurrentLabour(null);
+            setEditingContract(null);
         }
     }, [visible, labour?._id]);
 
@@ -100,26 +126,53 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
 
     const updateMilestoneAmounts = (total) => {
         const milestones = form.getFieldValue('milestones') || [];
-        const updated = milestones.map(m => ({
-            ...m,
-            amount: Math.round((total * (m.percentage || 0)) / 100)
-        }));
+        const updated = milestones.map(m => {
+            if (!m) return { name: '', percentage: 0, amount: 0 };
+            return {
+                ...m,
+                amount: Math.round((total * (m.percentage || 0)) / 100)
+            };
+        });
         form.setFieldsValue({ milestones: updated });
     };
 
     const onSaveContract = async () => {
         try {
             const values = await form.validateFields();
+            
+            // Validate milestone percentages sum to 100%
+            const milestones = values.milestones || [];
+            
+            // Ensure no milestone is 0% or negative
+            const hasZeroOrLess = milestones.some(m => (parseFloat(m?.percentage) || 0) <= 0);
+            if (hasZeroOrLess) {
+                message.error('All milestones must have a percentage greater than 0%.');
+                return;
+            }
+
+            const totalPercentage = milestones.reduce((sum, m) => sum + (parseFloat(m?.percentage) || 0), 0);
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+                message.error(`Total milestone percentage must equal 100%. Current total is ${totalPercentage.toFixed(2)}%.`);
+                return;
+            }
+
             const payload = {
                 ...values,
                 labour: labour._id,
                 companyId: labour.companyId,
             };
 
-            const res = await request.create({ entity: 'labourcontract', jsonData: payload });
+            let res;
+            if (editingContract) {
+                res = await request.update({ entity: 'labourcontract', id: editingContract._id, jsonData: payload });
+            } else {
+                res = await request.create({ entity: 'labourcontract', jsonData: payload });
+            }
+
             if (res.success) {
-                message.success('Contract added');
+                message.success(editingContract ? 'Contract updated successfully' : 'Contract added successfully');
                 setAddingContract(false);
+                setEditingContract(null);
                 form.resetFields();
                 fetchContracts();
             }
@@ -207,7 +260,7 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
             
             // Dynamic URL based on environment (localhost vs prod)
             // Points to /download/expense/...
-            const downloadUrl = `${BASE_URL}download/expense/expense-${expenseId}.pdf`;
+            const downloadUrl = `${DOWNLOAD_BASE_URL}expense/expense-${expenseId}.pdf`;
             
             const response = await fetch(downloadUrl, {
                 headers: {
@@ -222,15 +275,9 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
             
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Labour_Cost_Voucher_${expenseId}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
             
-            message.success({ content: 'Voucher Downloaded', key: 'voucher_download' });
+            message.success({ content: 'Voucher Opened', key: 'voucher_download' });
         } catch (error) {
             console.error('Voucher download error:', error);
             message.error({ content: 'Failed to download voucher.', key: 'voucher_download' });
@@ -258,6 +305,34 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
             message.error('Failed to update milestone');
         }
         return null;
+    };
+
+    const handleEditContract = (contract) => {
+        setEditingContract(contract);
+        setAddingContract(true);
+        form.setFieldsValue({
+            villa: contract.villa?._id || contract.villa,
+            ratePerSqft: contract.ratePerSqft,
+            totalSqft: contract.totalSqft,
+            totalAmount: contract.totalAmount,
+            customizeMilestones: true,
+            milestones: contract.milestones.map(m => ({
+                name: m.name,
+                percentage: m.percentage,
+                amount: m.amount || 0
+            }))
+        });
+    };
+
+    const handleDeleteContract = async (id) => {
+        try {
+            const res = await request.delete({ entity: 'labourcontract', id });
+            if (res.success) {
+                fetchContracts();
+            }
+        } catch (e) {
+            message.error('Failed to delete contract');
+        }
     };
 
     const columns = [
@@ -293,6 +368,23 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                 const total = record.milestones.length;
                 return <Tag color={completed === total ? 'green' : 'blue'}>{completed}/{total} Milestones</Tag>;
             }
+        },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => handleEditContract(record)}>Edit</Button>
+                    <Popconfirm
+                        title="Are you sure to delete this contract?"
+                        onConfirm={() => handleDeleteContract(record._id)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button danger icon={<DeleteOutlined />}>Delete</Button>
+                    </Popconfirm>
+                </Space>
+            )
         }
     ];
 
@@ -311,7 +403,8 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                     {!addingContract && (
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => {
                             setAddingContract(true);
-                            const plan = labour?.milestonePlan || [
+                            setEditingContract(null);
+                             const plan = currentLabour?.milestonePlan || labour?.milestonePlan || [
                                 'Basement Level',
                                 'Slab Completion',
                                 'Brick Work',
@@ -320,6 +413,7 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                             ];
                             const defaultPercentages = [20, 30, 20, 20, 10];
                             form.setFieldsValue({
+                                customizeMilestones: false,
                                 milestones: plan.map((name, i) => ({
                                     name: name,
                                     percentage: defaultPercentages[i] || 0,
@@ -332,192 +426,228 @@ const LabourContractManager = ({ visible, onCancel, labour }) => {
                     )}
                 </div>
 
-                {addingContract && (
-                    <div style={{ background: token.colorFillAlter, padding: 24, borderRadius: 8, marginBottom: 24, border: `1px solid ${token.colorBorderSecondary}` }}>
-                        <Title level={5}>New Contract Details</Title>
-                        <Form form={form} layout="vertical" onValuesChange={(changed) => {
-                            if (changed.ratePerSqft !== undefined || changed.totalSqft !== undefined) {
+                <div style={{ 
+                    display: addingContract ? 'block' : 'none',
+                    background: token.colorFillAlter, 
+                    padding: 24, 
+                    borderRadius: 8, 
+                    marginBottom: 24, 
+                    border: `1px solid ${token.colorBorderSecondary}` 
+                }}>
+                    <Title level={5}>New Contract Details</Title>
+                    <Form form={form} layout="vertical" onValuesChange={(changed, allValues) => {
+                        if (changed.ratePerSqft !== undefined || changed.totalSqft !== undefined) {
+                            calculateTotal();
+                        }
+                        if (changed.milestones) {
+                            const total = form.getFieldValue('totalAmount') || 0;
+                            updateMilestoneAmounts(total);
+                        }
+                        if (changed.customizeMilestones !== undefined) {
+                            if (!changed.customizeMilestones) {
+                                const plan = currentLabour?.milestonePlan || labour?.milestonePlan || [
+                                    'Basement Level',
+                                    'Slab Completion',
+                                    'Brick Work',
+                                    'Plastering',
+                                    'Finishing'
+                                ];
+                                const currentMilestones = form.getFieldValue('milestones') || [];
+                                const defaultPercentages = [20, 30, 20, 20, 10];
+                                const updated = plan.map((name, i) => {
+                                    const currentM = currentMilestones[i];
+                                    return {
+                                        name: name,
+                                        percentage: currentM ? currentM.percentage : (defaultPercentages[i] || 0),
+                                        amount: 0
+                                    };
+                                });
+                                form.setFieldsValue({ milestones: updated });
                                 calculateTotal();
                             }
-                            if (changed.milestones) {
-                                const total = form.getFieldValue('totalAmount') || 0;
-                                updateMilestoneAmounts(total);
-                            }
-                        }}>
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Form.Item name="villa" label="Select Villa" rules={[{ required: true }]}>
-                                        <SelectAsync entity="villa" displayLabels={['villaNumber']} onChange={handleVillaChange} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item name="groundFloorArea" label="GF Sqft">
-                                        <InputNumber disabled style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item name="firstFloorArea" label="1F Sqft">
-                                        <InputNumber disabled style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item name="secondFloorArea" label="2F Sqft">
-                                        <InputNumber disabled style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item name="totalSqft" label="Total Sqft">
-                                        <InputNumber disabled style={{ width: '100%' }} />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                    <Form.Item name="ratePerSqft" label="Rate / Sqft" rules={[{ required: true }]}>
-                                        <InputNumber
-                                            style={{ width: '100%' }}
-                                            prefix={currency_symbol}
-                                            formatter={inputFormatter}
-                                            parser={inputParser}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                        }
+                    }}>
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item name="villa" label="Select Villa" rules={[{ required: true }]}>
+                                    <SelectAsync entity="villa" displayLabels={['villaNumber']} outputValue="_id" onChange={handleVillaChange} />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="ratePerSqft" label="Rate / Sqft" rules={[{ required: true }]}>
+                                    <InputNumber
+                                        style={{ width: '100%' }}
+                                        min={0}
+                                        onChange={calculateTotal}
+                                        prefix={currency_symbol}
+                                        formatter={inputFormatter}
+                                        parser={inputParser}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item
+                                    noStyle
+                                    shouldUpdate={(prev, curr) => prev.totalAmount !== curr.totalAmount}
+                                >
+                                    {({ getFieldValue }) => {
+                                        const totalAmount = getFieldValue('totalAmount') || 0;
+                                        return (
+                                            <Form.Item
+                                                name="totalAmount"
+                                                label="Total Contract Value"
+                                                extra={totalAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(totalAmount)}</div> : null}
+                                            >
+                                                <InputNumber
+                                                    disabled
+                                                    style={{ width: '100%', fontWeight: 'bold' }}
+                                                    prefix={currency_symbol}
+                                                    formatter={inputFormatter}
+                                                    parser={inputParser}
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }}
+                                </Form.Item>
+                            </Col>
+                        </Row>
 
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Form.Item
-                                        noStyle
-                                        shouldUpdate={(prev, curr) => prev.totalAmount !== curr.totalAmount}
-                                    >
-                                        {({ getFieldValue }) => {
-                                            const totalAmount = getFieldValue('totalAmount') || 0;
-                                            return (
-                                                <Form.Item
-                                                    name="totalAmount"
-                                                    label="Total Contract Value"
-                                                    extra={totalAmount > 0 ? <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#888', marginTop: '5px' }}>{numberToWords(totalAmount)}</div> : null}
+                        <Row gutter={16} align="middle" style={{ marginBottom: 16 }}>
+                            <Col>
+                                <Form.Item name="customizeMilestones" valuePropName="checked" style={{ marginBottom: 0 }}>
+                                    <Switch checkedChildren="Custom" unCheckedChildren="Profile Default" />
+                                </Form.Item>
+                            </Col>
+                            <Col>
+                                <Text type="secondary">Customize milestones for this villa contract</Text>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">Payment Milestones</Divider>
+                        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.customizeMilestones !== curr.customizeMilestones}>
+                            {() => {
+                                const customizeMilestones = form.getFieldValue('customizeMilestones') || false;
+                                return (
+                                    <Form.List name="milestones">
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                {fields.map(({ key, name, ...restField }) => (
+                                                    <Row gutter={16} key={key} align="middle">
+                                                        <Col span={10}>
+                                                            <Form.Item
+                                                                {...restField}
+                                                                name={[name, 'name']}
+                                                                rules={[{ required: true, message: 'Missing stage name' }]}
+                                                            >
+                                                                <Input placeholder="Stage Name" disabled={!customizeMilestones} />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={4}>
+                                                            <Form.Item
+                                                                {...restField}
+                                                                name={[name, 'percentage']}
+                                                                rules={[{ required: true, message: 'Missing %' }]}
+                                                            >
+                                                                <InputNumber placeholder="%" min={0} max={100} style={{ width: '100%' }} formatter={v => `${v}%`} parser={v => v.replace('%', '')} />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={6}>
+                                                            <Form.Item
+                                                                shouldUpdate={(prev, curr) => prev.milestones !== curr.milestones}
+                                                                style={{ marginBottom: 0 }}
+                                                            >
+                                                                {({ getFieldValue }) => {
+                                                                    const milestones = getFieldValue('milestones');
+                                                                    const milestoneAmount = milestones && milestones[name] ? milestones[name].amount : 0;
+                                                                    return (
+                                                                        <Form.Item
+                                                                            {...restField}
+                                                                            name={[name, 'amount']}
+                                                                            help={milestoneAmount ? <span style={{ fontSize: '10px', color: '#888', fontStyle: 'italic' }}>{numberToWords(milestoneAmount)}</span> : null}
+                                                                        >
+                                                                            <InputNumber
+                                                                                disabled
+                                                                                prefix={currency_symbol}
+                                                                                style={{ width: '100%' }}
+                                                                                formatter={inputFormatter}
+                                                                                parser={inputParser}
+                                                                            />
+                                                                        </Form.Item>
+                                                                    );
+                                                                }}
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={2}>
+                                                            <Button 
+                                                                type="text" 
+                                                                danger 
+                                                                icon={<DeleteOutlined />} 
+                                                                onClick={() => remove(name)} 
+                                                                disabled={!customizeMilestones} 
+                                                            />
+                                                        </Col>
+                                                    </Row>
+                                                ))}
+                                                <Button 
+                                                    type="dashed" 
+                                                    onClick={() => add()} 
+                                                    block 
+                                                    icon={<PlusOutlined />} 
+                                                    disabled={!customizeMilestones}
+                                                    style={{ display: customizeMilestones ? 'block' : 'none', marginBottom: 24 }}
                                                 >
-                                                    <InputNumber
-                                                        disabled
-                                                        style={{ width: '100%', fontWeight: 'bold' }}
-                                                        prefix={currency_symbol}
-                                                        formatter={inputFormatter}
-                                                        parser={inputParser}
-                                                    />
-                                                </Form.Item>
-                                            );
-                                        }}
-                                    </Form.Item>
-                                </Col>
-                            </Row>
+                                                    Add Milestone
+                                                </Button>
+                                            </>
+                                        )}
+                                    </Form.List>
+                                );
+                            }}
+                        </Form.Item>
 
-                            <Divider orientation="left">Payment Milestones</Divider>
-                            <Form.List
-                                name="milestones"
-                            >
-                                {(fields, { add, remove }) => (
-                                    <>
-                                        {fields.map(({ key, name, ...restField }) => (
-                                            <Row gutter={16} key={key} align="middle">
-                                                <Col span={10}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'name']}
-                                                        rules={[{ required: true, message: 'Missing stage name' }]}
-                                                    >
-                                                        <Input placeholder="Stage Name" />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={4}>
-                                                    <Form.Item
-                                                        {...restField}
-                                                        name={[name, 'percentage']}
-                                                        rules={[{ required: true, message: 'Missing %' }]}
-                                                    >
-                                                        <InputNumber placeholder="%" min={0} max={100} style={{ width: '100%' }} formatter={v => `${v}%`} parser={v => v.replace('%', '')} />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={6}>
-                                                    <Form.Item
-                                                        shouldUpdate={(prev, curr) => prev.milestones !== curr.milestones}
-                                                        style={{ marginBottom: 0 }}
-                                                    >
-                                                        {({ getFieldValue }) => {
-                                                            const milestones = getFieldValue('milestones');
-                                                            const milestoneAmount = milestones && milestones[name] ? milestones[name].amount : 0;
-                                                            return (
-                                                                <Form.Item
-                                                                    {...restField}
-                                                                    name={[name, 'amount']}
-                                                                    help={milestoneAmount ? <span style={{ fontSize: '10px', color: '#888', fontStyle: 'italic' }}>{numberToWords(milestoneAmount)}</span> : null}
-                                                                >
-                                                                    <InputNumber
-                                                                        disabled
-                                                                        prefix={currency_symbol}
-                                                                        style={{ width: '100%' }}
-                                                                        formatter={inputFormatter}
-                                                                        parser={inputParser}
-                                                                    />
-                                                                </Form.Item>
-                                                            );
-                                                        }}
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={2}>
-                                                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(name)} />
-                                                </Col>
-                                            </Row>
-                                        ))}
-                                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
-                                            Add Milestone
-                                        </Button>
-                                    </>
-                                )}
-                            </Form.List>
+                        {/* Percentage Validation */}
+                        <Form.Item noStyle shouldUpdate>
+                            {() => {
+                                const milestones = form.getFieldValue('milestones') || [];
+                                const totalPercentage = milestones.reduce((sum, m) => sum + (parseFloat(m?.percentage) || 0), 0);
+                                const remaining = 100 - totalPercentage;
 
-                            {/* Percentage Validation */}
-                            <Form.Item noStyle shouldUpdate>
-                                {() => {
-                                    const milestones = form.getFieldValue('milestones') || [];
-                                    const totalPercentage = milestones.reduce((sum, m) => sum + (parseFloat(m?.percentage) || 0), 0);
-                                    const remaining = 100 - totalPercentage;
+                                const isValid = Math.abs(totalPercentage - 100) < 0.01; // Allow tiny floating point errors
 
-                                    const isValid = Math.abs(totalPercentage - 100) < 0.01; // Allow tiny floating point errors
-
-                                    return (
-                                        <div style={{
-                                            marginTop: 16,
-                                            padding: 12,
-                                            background: isValid ? token.colorSuccessBg : token.colorWarningBg,
-                                            border: `1px solid ${isValid ? token.colorSuccessBorder : token.colorWarningBorder}`,
-                                            borderRadius: 4
-                                        }}>
-                                            <Space direction="vertical" size={4}>
-                                                <Text strong style={{ color: isValid ? token.colorSuccess : token.colorWarning }}>
-                                                    Total Percentage: {totalPercentage.toFixed(2)}%
+                                return (
+                                    <div style={{
+                                        marginTop: 16,
+                                        padding: 12,
+                                        background: isValid ? token.colorSuccessBg : token.colorWarningBg,
+                                        border: `1px solid ${isValid ? token.colorSuccessBorder : token.colorWarningBorder}`,
+                                        borderRadius: 4
+                                    }}>
+                                        <Space direction="vertical" size={4}>
+                                            <Text strong style={{ color: isValid ? token.colorSuccess : token.colorWarning }}>
+                                                Total Percentage: {totalPercentage.toFixed(2)}%
+                                            </Text>
+                                            {!isValid && (
+                                                <Text type="warning">
+                                                    {remaining > 0
+                                                        ? `⚠️ ${remaining.toFixed(2)}% remaining to reach 100%`
+                                                        : `⚠️ Exceeded by ${Math.abs(remaining).toFixed(2)}%`}
                                                 </Text>
-                                                {!isValid && (
-                                                    <Text type="warning">
-                                                        {remaining > 0
-                                                            ? `⚠️ ${remaining.toFixed(2)}% remaining to reach 100%`
-                                                            : `⚠️ Exceeded by ${Math.abs(remaining).toFixed(2)}%`}
-                                                    </Text>
-                                                )}
-                                                {isValid && (
-                                                    <Text type="success">✓ Milestones add up to 100%</Text>
-                                                )}
-                                            </Space>
-                                        </div>
-                                    );
-                                }}
-                            </Form.Item>
+                                            )}
+                                            {isValid && (
+                                                <Text type="success">✓ Milestones add up to 100%</Text>
+                                            )}
+                                        </Space>
+                                    </div>
+                                );
+                            }}
+                        </Form.Item>
 
-                            <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                                <Button onClick={() => setAddingContract(false)}>Cancel</Button>
-                                <Button type="primary" icon={<SaveOutlined />} onClick={onSaveContract}>Save Contract</Button>
-                            </div>
-                        </Form>
-                    </div>
-                )}
+                        <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                            <Button onClick={() => { setAddingContract(false); setEditingContract(null); form.resetFields(); }}>Cancel</Button>
+                            <Button type="primary" icon={<SaveOutlined />} onClick={onSaveContract}>{editingContract ? 'Update Contract' : 'Save Contract'}</Button>
+                        </div>
+                    </Form>
+                </div>
 
                 <Table
                     rowKey="_id"

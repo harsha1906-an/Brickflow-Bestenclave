@@ -16,7 +16,8 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
       expense: 'expense',
       supplier: 'supplier',
       inventoryreport: 'material',
-      villa: 'villa'
+      villa: 'villa',
+      pettycashtransaction: 'pettycashtransaction'
     };
 
     const entityName = directoryToEntity[directory] || directory;
@@ -39,6 +40,8 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
     let modelName = directory.slice(0, 1).toUpperCase() + directory.slice(1);
     if (directory === 'paymentrequest' || directory === 'bookingreceipt') {
       modelName = 'Booking';
+    } else if (directory === 'pettycashtransaction') {
+      modelName = 'PettyCashTransaction';
     }
 
     if (mongoose.models[modelName]) {
@@ -88,6 +91,18 @@ module.exports = downloadPdf = async (req, res, { directory, id }) => {
       if (directory === 'expense') {
         const { numberToWords } = require('@/helpers');
         result.inWords = numberToWords(result.amount || 0);
+        // Reset modelName to 'expensevoucher' so it uses the correct PUG template
+        modelName = 'expensevoucher';
+      }
+
+      // Handle Petty Cash Transaction Voucher logic
+      if (directory === 'pettycashtransaction') {
+        const { numberToWords } = require('@/helpers');
+        result.inWords = numberToWords(result.amount || 0);
+        result.number = result.receiptNumber || `PCT-${result._id.toString().slice(-6).toUpperCase()}`;
+        result.recipientType = result.type === 'inward' ? 'Top-up' : 'Expense';
+        result.description = result.name + (result.note ? ` (${result.note})` : '');
+        result.paymentMode = 'Cash';
         // Reset modelName to 'expensevoucher' so it uses the correct PUG template
         modelName = 'expensevoucher';
       }

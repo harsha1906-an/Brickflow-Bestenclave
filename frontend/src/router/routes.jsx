@@ -69,6 +69,7 @@ const ExpenseCreate = lazy(() => import('@/pages/Expense/ExpenseCreate'));
 const VillaReports = lazy(() => import('@/pages/VillaReports'));
 const VillaReportDetail = lazy(() => import('@/pages/VillaReports/VillaReportDetail'));
 const Reports = lazy(() => import('@/pages/Reports'));
+const ScanBills = lazy(() => import('@/pages/ScanBills'));
 
 let routes = {
   expense: [],
@@ -88,6 +89,10 @@ let routes = {
     {
       path: '/audit-logs',
       element: <AuditLog />,
+    },
+    {
+      path: '/scan-bills',
+      element: <ScanBills />,
     },
     {
       path: '/',

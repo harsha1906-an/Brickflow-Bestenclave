@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Modal, Tag, Switch, Select, Form, Input, App, Space, Tabs, Divider, Descriptions } from 'antd';
+import { Table, Button, Modal, Tag, Switch, Select, Form, Input, App, Space, Tabs, Divider, Descriptions, Alert, Popconfirm } from 'antd';
 import useMoney from '@/settings/useMoney';
 import { PlusOutlined, EditOutlined, EyeOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
@@ -14,6 +14,7 @@ const skillOptions = [
   { value: 'electrician', label: 'Electrician' },
   { value: 'plumber', label: 'Plumber' },
   { value: 'helper', label: 'Helper' },
+  { value: 'staff', label: 'Staff' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -56,17 +57,11 @@ const LabourList = () => {
       const response = await request.pdf({ entity: `labour/pdf-list?company=${companyId}` });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Labour_List.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      message.success({ content: 'List Downloaded', key: 'pdf_download' });
+      window.open(url, '_blank');
+      message.success({ content: 'List Generated', key: 'pdf_download' });
     } catch (error) {
       console.error(error);
-      message.error({ content: 'Failed to download list', key: 'pdf_download' });
+      message.error({ content: 'Failed to generate list', key: 'pdf_download' });
     }
   };
 
@@ -76,6 +71,12 @@ const LabourList = () => {
     }
     // eslint-disable-next-line
   }, [companyId]);
+
+  useEffect(() => {
+    const handleUndo = () => fetchLabour();
+    window.addEventListener('undo-delete-refresh', handleUndo);
+    return () => window.removeEventListener('undo-delete-refresh', handleUndo);
+  });
 
   const openModal = (record = null) => {
     setEditing(record);
@@ -114,6 +115,17 @@ const LabourList = () => {
     }
   };
 
+  const handleDeleteLabour = async (id) => {
+    try {
+      const res = await request.delete({ entity: `companies/${companyId}/labour`, id });
+      if (res.success) {
+        fetchLabour();
+      }
+    } catch (e) {
+      message.error('Failed to delete labour');
+    }
+  };
+
   const columns = [
     {
       title: 'Name', dataIndex: 'name', key: 'name', render: (text, record) => (
@@ -144,23 +156,29 @@ const LabourList = () => {
     },
     { title: 'Status', dataIndex: 'isActive', key: 'isActive', render: v => v ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag> },
   ];
-  if (role === 'OWNER' || role === 'ENGINEER') {
-    columns.push({
-      title: 'Action',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => { setViewingLabour(record); setViewDetailsOpen(true); }} />
-          <Button icon={<EditOutlined />} onClick={() => openModal(record)} />
-          {record.employmentType === 'contract' && (
-            <Button type="primary" onClick={() => openContractManager(record)}>
-              Manage Contracts
-            </Button>
-          )}
-        </Space>
-      ),
-    });
-  }
+  columns.push({
+    title: 'Action',
+    key: 'action',
+    render: (_, record) => (
+      <Space>
+        <Button icon={<EyeOutlined />} onClick={() => { setViewingLabour(record); setViewDetailsOpen(true); }} />
+        <Button icon={<EditOutlined />} onClick={() => openModal(record)} />
+        <Popconfirm
+          title="Are you sure to delete this labour record?"
+          onConfirm={() => handleDeleteLabour(record._id)}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button danger icon={<DeleteOutlined />}>Delete</Button>
+        </Popconfirm>
+        {record.employmentType === 'contract' && (
+          <Button type="primary" onClick={() => openContractManager(record)}>
+            Manage Contracts
+          </Button>
+        )}
+      </Space>
+    ),
+  });
 
   const filteredData = (type) => (Array.isArray(data) ? data : []).filter(item => {
     if (type === 'all') return true;
@@ -182,11 +200,9 @@ const LabourList = () => {
           <Button onClick={handleDownloadAll} icon={<DownloadOutlined />}>
             Download List
           </Button>
-          {(role === 'OWNER' || role === 'ENGINEER') && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
-              Add Labour
-            </Button>
-          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
+            Add Labour
+          </Button>
         </Space>
       </div>
 
@@ -194,10 +210,9 @@ const LabourList = () => {
       <Modal
         title={editing ? 'Edit Labour' : 'Add Labour'}
         open={modalOpen}
-        onOk={role === 'ACCOUNTANT' ? undefined : handleOk}
+        onOk={handleOk}
         onCancel={() => setModalOpen(false)}
         destroyOnClose
-        okButtonProps={role === 'ACCOUNTANT' ? { disabled: true } : {}}
         width={600}
       >
         <Form form={form} layout="vertical" initialValues={{
@@ -213,7 +228,7 @@ const LabourList = () => {
         }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-              <Input disabled={role === 'ACCOUNTANT'} />
+              <Input />
             </Form.Item>
             <Form.Item
               name="phone"
@@ -225,13 +240,13 @@ const LabourList = () => {
                 },
               ]}
             >
-              <Input disabled={role === 'ACCOUNTANT'} />
+              <Input />
             </Form.Item>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <Form.Item name="skill" label="Skill / Worker Type" rules={[{ required: true }]}>
-              <Select options={skillOptions} disabled={role === 'ACCOUNTANT'} />
+              <Select options={skillOptions} />
             </Form.Item>
             <Form.Item name="employmentType" label="Employment Type" rules={[{ required: true }]}>
               <Select
@@ -240,7 +255,6 @@ const LabourList = () => {
                   { value: 'monthly', label: 'Monthly Salary' },
                   { value: 'contract', label: 'Contract Based' },
                 ]}
-                disabled={role === 'ACCOUNTANT'}
               />
             </Form.Item>
           </div>
@@ -255,7 +269,7 @@ const LabourList = () => {
                     label="Specify Skill Type"
                     rules={[{ required: true, message: 'Please specify the skill type' }]}
                   >
-                    <Input placeholder="Enter custom skill type" disabled={role === 'ACCOUNTANT'} />
+                    <Input placeholder="Enter custom skill type" />
                   </Form.Item>
                 );
               }
@@ -273,41 +287,49 @@ const LabourList = () => {
           >
             {({ getFieldValue }) => {
               const type = getFieldValue('employmentType');
-              if (type === 'daily') {
-                const dailyWage = getFieldValue('dailyWage') || 0;
-                return (
-                  <Form.Item
-                    name="dailyWage"
-                    label="Daily Wage Rate"
-                    rules={[{ required: true }]}
-                    extra={dailyWage > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(dailyWage)}</div> : null}
-                  >
-                    <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
-                  </Form.Item>
-                );
-              }
-              if (type === 'monthly') {
-                const monthlySalary = getFieldValue('monthlySalary') || 0;
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              const dailyWage = getFieldValue('dailyWage') || 0;
+              const monthlySalary = getFieldValue('monthlySalary') || 0;
+              
+              return (
+                <>
+                  {type === 'daily' && (
                     <Form.Item
-                      name="monthlySalary"
-                      label="Monthly Salary"
+                      name="dailyWage"
+                      label="Daily Wage Rate"
                       rules={[{ required: true }]}
-                      extra={monthlySalary > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(monthlySalary)}</div> : null}
+                      extra={dailyWage > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(dailyWage)}</div> : null}
                     >
-                      <Input type="number" prefix={currency_symbol} disabled={role === 'ACCOUNTANT'} />
+                      <Input type="number" prefix={currency_symbol} />
                     </Form.Item>
-                    <Form.Item name="paymentDay" label="Payment Day (of month)" rules={[{ required: true }]}>
-                      <Input type="number" min={1} max={31} disabled={role === 'ACCOUNTANT'} />
-                    </Form.Item>
-                  </div>
-                );
-              }
-              if (type === 'contract') {
-                return (
-                  <>
+                  )}
+                  
+                  {type === 'monthly' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <Form.Item
+                        name="monthlySalary"
+                        label="Monthly Salary"
+                        rules={[{ required: true }]}
+                        extra={monthlySalary > 0 ? <div style={{ fontSize: '11px', color: '#888', fontStyle: 'italic', marginTop: '4px' }}>{numberToWords(monthlySalary)}</div> : null}
+                      >
+                        <Input type="number" prefix={currency_symbol} />
+                      </Form.Item>
+                      <Form.Item name="paymentDay" label="Payment Day (of month)" rules={[{ required: true }]}>
+                        <Input type="number" min={1} max={31} />
+                      </Form.Item>
+                    </div>
+                  )}
+                  
+                  <div style={{ display: type === 'contract' ? 'block' : 'none' }}>
                     <Divider orientation="left">Milestone Plan</Divider>
+                    {editing?.hasActiveContracts && (
+                      <Alert
+                        message="Milestone Plan Locked"
+                        description="This contractor is already assigned to active villa contracts. The milestone plan cannot be modified."
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                    )}
                     <Form.List name="milestonePlan">
                       {(fields, { add, remove }) => (
                         <>
@@ -321,13 +343,13 @@ const LabourList = () => {
                                   rules={[{ required: true, message: 'Required' }]}
                                   style={{ marginBottom: 0, flex: 1 }}
                                 >
-                                  <Input disabled={role === 'ACCOUNTANT'} placeholder={`Milestone ${index + 1}`} />
+                                  <Input disabled={editing?.hasActiveContracts} placeholder={`Milestone ${index + 1}`} />
                                 </Form.Item>
                                 {fields.length > 1 && (
                                   <Button
                                     type="text"
                                     danger
-                                    disabled={role === 'ACCOUNTANT'}
+                                    disabled={editing?.hasActiveContracts}
                                     icon={<DeleteOutlined />}
                                     onClick={() => remove(name)}
                                     style={{ marginBottom: '4px' }}
@@ -340,7 +362,7 @@ const LabourList = () => {
                             <Button
                               type="dashed"
                               onClick={() => add()}
-                              disabled={role === 'ACCOUNTANT'}
+                              disabled={editing?.hasActiveContracts}
                               block
                               icon={<PlusOutlined />}
                             >
@@ -350,23 +372,22 @@ const LabourList = () => {
                         </>
                       )}
                     </Form.List>
-                  </>
-                );
-              }
-              return null;
+                  </div>
+                </>
+              );
             }}
           </Form.Item>
 
           <Form.Item name="notes" label="Notes">
-            <Input.TextArea rows={3} placeholder="Additional notes..." disabled={role === 'ACCOUNTANT'} />
+            <Input.TextArea rows={3} placeholder="Additional notes..." />
           </Form.Item>
 
           <div style={{ display: 'flex', gap: '24px', marginTop: '8px' }}>
             <Form.Item name="isActive" label="Account Status" valuePropName="checked">
-              <Switch checkedChildren="Active" unCheckedChildren="Inactive" disabled={role === 'ACCOUNTANT'} />
+              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
             </Form.Item>
             <Form.Item name="isSubstitute" label="Substitute Worker" valuePropName="checked">
-              <Switch checkedChildren="Yes" unCheckedChildren="No" disabled={role === 'ACCOUNTANT'} />
+              <Switch checkedChildren="Yes" unCheckedChildren="No" />
             </Form.Item>
           </div>
         </Form>
@@ -391,7 +412,7 @@ const LabourList = () => {
               <Descriptions.Item label="Custom Skill">{viewingLabour.customSkill}</Descriptions.Item>
             )}
             <Descriptions.Item label="Phone">{viewingLabour.phone || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Employment Type">
+            <Descriptions.Item label="Employment Type" span={viewingLabour.employmentType === 'contract' ? 2 : 1}>
               {viewingLabour.employmentType ? viewingLabour.employmentType.charAt(0).toUpperCase() + viewingLabour.employmentType.slice(1) : 'Daily'}
             </Descriptions.Item>
             {viewingLabour.employmentType === 'daily' && (

@@ -28,12 +28,16 @@ export default function Reports() {
     // Dynamic Lists from Backend
     const [villas, setVillas] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const [clients, setClients] = useState([]);
+    const [bookings, setBookings] = useState([]);
 
     // Custom Filters
     const [selectedVilla, setSelectedVilla] = useState('all');
     const [labourSkill, setLabourSkill] = useState('all');
     const [selectedSupplier, setSelectedSupplier] = useState('all');
     const [supplierType, setSupplierType] = useState('all');
+    const [selectedClient, setSelectedClient] = useState(null);
+    const [selectedBooking, setSelectedBooking] = useState(null);
 
     // Sorting
     const [sortBy, setSortBy] = useState('date');
@@ -50,6 +54,14 @@ export default function Reports() {
                 const suppliersRes = await request.listAll({ entity: 'supplier' });
                 if (suppliersRes.success) {
                     setSuppliers(suppliersRes.result || []);
+                }
+                const clientsRes = await request.listAll({ entity: 'client' });
+                if (clientsRes.success) {
+                    setClients(clientsRes.result || []);
+                }
+                const bookingsRes = await request.listAll({ entity: 'booking' });
+                if (bookingsRes.success) {
+                    setBookings(bookingsRes.result || []);
                 }
             } catch (err) {
                 console.error('Failed to load list data:', err);
@@ -88,8 +100,24 @@ export default function Reports() {
         } else if (category === 'inventory') {
             setSortBy('date');
             setSelectedVilla('all');
+        } else if (category === 'supplier-details') {
+            if (suppliers.length > 0 && (!selectedSupplier || selectedSupplier === 'all')) {
+                setSelectedSupplier(suppliers[0]._id);
+            }
+        } else if (category === 'customer') {
+            if (!selectedClient) {
+                setSelectedClient('all');
+            }
+        } else if (category === 'booking-details') {
+            if (bookings.length > 0 && !selectedBooking) {
+                setSelectedBooking(bookings[0]._id);
+            }
+        } else if (category === 'villa-details') {
+            if (villas.length > 0 && (!selectedVilla || selectedVilla === 'all')) {
+                setSelectedVilla(villas[0]._id);
+            }
         }
-    }, [category]);
+    }, [category, suppliers, clients, bookings, villas]);
 
     const handlePreviewPDF = async () => {
         if (!companyId) {
@@ -109,7 +137,7 @@ export default function Reports() {
             let entityPath = '';
 
             // Handle date parameter
-            if (category !== 'customer') {
+            if (isDateSupported) {
                 if (dateMode === 'single') {
                     params.date = singleDate.format('YYYY-MM-DD');
                 } else {
@@ -163,7 +191,35 @@ export default function Reports() {
                 params.sortBy = sortBy;
                 params.sortOrder = sortOrder;
             } else if (category === 'customer') {
-                entityPath = 'client/report';
+                if (selectedClient === 'all' || !selectedClient) {
+                    entityPath = 'client/report';
+                } else {
+                    entityPath = `customer/${selectedClient}/pdf-details`;
+                }
+            } else if (category === 'labour-list') {
+                entityPath = 'labour/pdf-list';
+                params.company = companyId;
+            } else if (category === 'supplier-details') {
+                if (!selectedSupplier || selectedSupplier === 'all') {
+                    message.warning('Please select a supplier');
+                    setLoading(false);
+                    return;
+                }
+                entityPath = `supplier/${selectedSupplier}/pdf-details`;
+            } else if (category === 'booking-details') {
+                if (!selectedBooking) {
+                    message.warning('Please select a booking');
+                    setLoading(false);
+                    return;
+                }
+                entityPath = `booking/${selectedBooking}/pdf-details`;
+            } else if (category === 'villa-details') {
+                if (!selectedVilla || selectedVilla === 'all') {
+                    message.warning('Please select a villa');
+                    setLoading(false);
+                    return;
+                }
+                entityPath = `villa/report/${selectedVilla}`;
             }
 
             const response = await request.pdf({
@@ -194,29 +250,7 @@ export default function Reports() {
             return;
         }
 
-        const link = document.createElement('a');
-        link.href = pdfUrl;
-
-        let filename = `${category}_report.pdf`;
-        if (category === 'daily-summary') {
-            filename = `DailyReport_${dateMode === 'single' ? singleDate.format('YYYY-MM-DD') : rangeDate[0].format('YYYY-MM-DD') + '_to_' + rangeDate[1].format('YYYY-MM-DD')}.pdf`;
-        } else if (category === 'expense') {
-            filename = `ExpenseReport_${rangeDate[0].format('YYYY-MM-DD')}_to_${rangeDate[1].format('YYYY-MM-DD')}.pdf`;
-        } else if (category === 'tax') {
-            filename = `TaxReport_${rangeDate[0].format('YYYY-MM-DD')}_to_${rangeDate[1].format('YYYY-MM-DD')}.pdf`;
-        } else if (category === 'pettycash') {
-            filename = `PettyCashReport_${dateMode === 'single' ? singleDate.format('YYYY-MM-DD') : rangeDate[0].format('YYYY-MM-DD') + '_to_' + rangeDate[1].format('YYYY-MM-DD')}.pdf`;
-        } else if (category === 'inventory') {
-            filename = `InventoryReport_${rangeDate[0].format('YYYY-MM-DD')}_to_${rangeDate[1].format('YYYY-MM-DD')}.pdf`;
-        } else if (category === 'customer') {
-            filename = `CustomerSummary_${dayjs().format('YYYY-MM-DD')}.pdf`;
-        }
-
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        message.success('Download started');
+        window.open(pdfUrl, '_blank');
     };
 
     const handlePrintPDF = () => {
@@ -322,8 +356,8 @@ export default function Reports() {
     };
 
     const isSortingSupported = ['expense', 'tax', 'inventory'].includes(category);
-    const isDateSupported = category !== 'customer';
-    const isSubcategorySupported = category !== 'customer';
+    const isDateSupported = !['customer', 'labour-list', 'supplier-details', 'booking-details', 'villa-details'].includes(category);
+    const isSubcategorySupported = !['customer', 'labour-list', 'supplier-details', 'booking-details', 'villa-details'].includes(category);
 
     return (
         <div style={{ padding: '24px' }}>
@@ -353,7 +387,11 @@ export default function Reports() {
                                         { value: 'tax', label: 'Tax & Ledger Report' },
                                         { value: 'pettycash', label: 'Petty Cash Ledger' },
                                         { value: 'inventory', label: 'Inventory / Material Activity' },
-                                        { value: 'customer', label: 'Customer / Client List' }
+                                        { value: 'customer', label: 'Customer Report' },
+                                        { value: 'labour-list', label: 'Labour List' },
+                                        { value: 'supplier-details', label: 'Supplier Details Report' },
+                                        { value: 'booking-details', label: 'Booking Details Report' },
+                                        { value: 'villa-details', label: 'Villa Details Report' }
                                     ]}
                                 />
                             </div>
@@ -436,7 +474,8 @@ export default function Reports() {
                                                 { value: 'mason', label: 'Mason' },
                                                 { value: 'electrician', label: 'Electrician' },
                                                 { value: 'plumber', label: 'Plumber' },
-                                                { value: 'helper', label: 'Helper' }
+                                                { value: 'helper', label: 'Helper' },
+                                                { value: 'staff', label: 'Staff' }
                                             ]}
                                         />
                                     </div>
@@ -456,6 +495,8 @@ export default function Reports() {
                                                 { value: 'all', label: 'All Types' },
                                                 { value: 'cement', label: 'Cement' },
                                                 { value: 'aggregate', label: 'Aggregate' },
+                                                { value: 'stones_bolders', label: 'Size Stones / Bolders' },
+                                                { value: 'waterproofing_chemicals', label: 'Waterproofing Chemicals' },
                                                 { value: 'steel', label: 'Steel' },
                                                 { value: 'bricks', label: 'Bricks' },
                                                 { value: 'tiles', label: 'Tiles' },
@@ -490,6 +531,78 @@ export default function Reports() {
                                             onChange={setSelectedVilla}
                                             options={[{ label: 'All Villas', value: 'all' }, ...villas.map(v => ({ label: v.villaNumber, value: v._id }))]}
                                             showSearch
+                                            optionFilterProp="label"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {category === 'supplier-details' && (
+                                <>
+                                    <Divider style={{ margin: '4px 0' }} />
+                                    <div>
+                                        <label style={{ fontWeight: 500, display: 'block', marginBottom: '8px' }}>Select Supplier</label>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            value={selectedSupplier}
+                                            onChange={setSelectedSupplier}
+                                            options={suppliers.map(s => ({ label: s.name, value: s._id }))}
+                                            showSearch
+                                            placeholder="Select Supplier"
+                                            optionFilterProp="label"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {category === 'customer' && (
+                                <>
+                                    <Divider style={{ margin: '4px 0' }} />
+                                    <div>
+                                        <label style={{ fontWeight: 500, display: 'block', marginBottom: '8px' }}>Select Customer</label>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            value={selectedClient}
+                                            onChange={setSelectedClient}
+                                            options={[{ label: 'All Customers (Summary)', value: 'all' }, ...clients.map(c => ({ label: c.name, value: c._id }))]}
+                                            showSearch
+                                            placeholder="Select Customer"
+                                            optionFilterProp="label"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {category === 'booking-details' && (
+                                <>
+                                    <Divider style={{ margin: '4px 0' }} />
+                                    <div>
+                                        <label style={{ fontWeight: 500, display: 'block', marginBottom: '8px' }}>Select Booking (Villa Number)</label>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            value={selectedBooking}
+                                            onChange={setSelectedBooking}
+                                            options={bookings.map(b => ({ label: `${b.villaNumber || ''} - ${b.client?.name || ''}`, value: b._id }))}
+                                            showSearch
+                                            placeholder="Select Booking"
+                                            optionFilterProp="label"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {category === 'villa-details' && (
+                                <>
+                                    <Divider style={{ margin: '4px 0' }} />
+                                    <div>
+                                        <label style={{ fontWeight: 500, display: 'block', marginBottom: '8px' }}>Select Villa</label>
+                                        <Select
+                                            style={{ width: '100%' }}
+                                            value={selectedVilla}
+                                            onChange={setSelectedVilla}
+                                            options={villas.map(v => ({ label: v.villaNumber, value: v._id }))}
+                                            showSearch
+                                            placeholder="Select Villa"
                                             optionFilterProp="label"
                                         />
                                     </div>

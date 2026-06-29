@@ -27,6 +27,9 @@ const schema = new mongoose.Schema({
         ref: 'Supplier',
         autopopulate: true,
     },
+    supplierCategory: {
+        type: String,
+    },
     usageCategory: {
         type: String,
         enum: ['daily_work', 'waste', 'transfer', 'adjustment', 'other'],
@@ -52,6 +55,10 @@ const schema = new mongoose.Schema({
         type: Date,
         default: Date.now,
         required: true,
+    },
+    entryDate: {
+        type: Date,
+        default: Date.now,
     },
     reference: {
         type: String, // PO Number, Receiver Name, Usage Location, etc.

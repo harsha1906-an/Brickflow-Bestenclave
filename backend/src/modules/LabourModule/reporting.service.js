@@ -115,6 +115,7 @@ async function getSingleDayReportData(companyId, date) {
         else if (exp.recipientType === 'Other') payee = exp.otherRecipient || 'Other';
 
         items.push({
+            _id: exp._id,
             type: 'expense',
             category: exp.recipientType,
             payee: payee,
@@ -133,6 +134,7 @@ async function getSingleDayReportData(companyId, date) {
 
     for (const pc of pettyCash) {
         items.push({
+            _id: pc._id,
             type: 'expense',
             category: 'Petty Cash',
             payee: 'Cash',
@@ -175,6 +177,7 @@ async function getSingleDayReportData(companyId, date) {
         if (p.description) desc += ` | ${p.description}`;
 
         items.push({
+            _id: p._id,
             type: 'income',
             category: 'Collection',
             payee: payee,

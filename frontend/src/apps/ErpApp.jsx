@@ -1,5 +1,4 @@
-import { useLayoutEffect } from 'react';
-import { useEffect } from 'react';
+import { useLayoutEffect, useEffect } from 'react';
 import { selectAppSettings } from '@/redux/settings/selectors';
 import { useDispatch, useSelector } from 'react-redux';
 

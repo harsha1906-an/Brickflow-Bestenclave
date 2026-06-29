@@ -91,9 +91,23 @@ const schema = new mongoose.Schema({
     taxRate: { type: Number, default: 0 },
     taxAmount: { type: Number, default: 0 },
     taxType: { type: String, enum: ['IGST', 'CGST_SGST', 'None'], default: 'None' },
+    discount: { type: Number, default: 0 },
+    roundOff: { type: Number, default: 0 },
     totalAmount: { type: Number, default: 0 },
     gstin: { type: String },
     advance: {
+        type: Number,
+        default: 0,
+    },
+    balance: {
+        type: Number,
+        default: 0,
+    },
+    betta: {
+        type: Number,
+        default: 0,
+    },
+    extra: {
         type: Number,
         default: 0,
     },

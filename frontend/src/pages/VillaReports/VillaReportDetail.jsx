@@ -258,14 +258,8 @@ export default function VillaReportDetail() {
         try {
             setLoading(true);
             const response = await request.pdf({ entity: `villa/report/${id}` });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Villa_Report_${villa.villaNumber}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(link);
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            window.open(url, '_blank');
             setLoading(false);
         } catch (error) {
             console.error('Download failed:', error);

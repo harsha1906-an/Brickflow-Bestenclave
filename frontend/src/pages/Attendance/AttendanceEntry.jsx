@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Button, Alert, Modal, Spin, Empty, message, Space, Form, Input, Select } from 'antd';
-import { SaveOutlined, ExclamationCircleOutlined, UserAddOutlined, BuildOutlined } from '@ant-design/icons';
+import { Card, Button, Alert, Modal, Spin, Empty, message, Space, Form, Input, Select, Tabs } from 'antd';
+import { SaveOutlined, ExclamationCircleOutlined, UserAddOutlined, BuildOutlined, FileTextOutlined, CalendarOutlined, PlusCircleOutlined, WalletOutlined } from '@ant-design/icons';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAppContext } from '@/context/appContext';
 import { request } from '@/request';
@@ -10,8 +10,8 @@ import AttendanceSummary from './components/AttendanceSummary';
 import LabourAttendanceRow from './components/LabourAttendanceRow';
 
 import AttendanceReport from './AttendanceReport';
+import AttendanceReview from './AttendanceReview';
 import DailyReport from './DailyReport';
-import { FileTextOutlined } from '@ant-design/icons';
 import { useMoney } from '@/settings';
 
 // Remove static destructuring
@@ -26,6 +26,7 @@ const AttendanceEntry = () => {
     const [selectedDate, setSelectedDate] = useState(dayjs());
     const [labourList, setLabourList] = useState([]);
     const [attendanceMap, setAttendanceMap] = useState({}); // labourId -> { status, otHours, _id }
+    const [monthAttendance, setMonthAttendance] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [substituteModalOpen, setSubstituteModalOpen] = useState(false);
@@ -70,6 +71,14 @@ const AttendanceEntry = () => {
                 };
             });
             setAttendanceMap(map);
+
+            // Fetch monthly attendance to track casual leave counts
+            const startOfMonthStr = selectedDate.startOf('month').format('YYYY-MM-DD');
+            const endOfMonthStr = selectedDate.endOf('month').format('YYYY-MM-DD');
+            const monthData = await request.get({
+                entity: `companies/${companyId}/attendance?startDate=${startOfMonthStr}&endDate=${endOfMonthStr}`
+            });
+            setMonthAttendance(monthData || []);
         } catch (e) {
             messageApi.error('Failed to load data');
             console.error(e);
@@ -85,6 +94,20 @@ const AttendanceEntry = () => {
                 ...update
             }
         }));
+    };
+
+    const getClCountExcludingToday = (labourId) => {
+        const dateStr = selectedDate.format('YYYY-MM-DD');
+        let count = 0;
+        monthAttendance.forEach(att => {
+            if (att.labourId === labourId && att.status === 'casual-leave') {
+                const attDateStr = dayjs(att.date).format('YYYY-MM-DD');
+                if (attDateStr !== dateStr) {
+                    count++;
+                }
+            }
+        });
+        return count;
     };
 
     const handleAddSubstitute = async () => {
@@ -123,9 +146,9 @@ const AttendanceEntry = () => {
             const attendance = attendanceMap[labour._id];
             if (!attendance || !attendance.status) {
                 unmarked++;
-            } else if (attendance.status === 'present') {
+            } else if (['present', 'half-day', 'overtime'].includes(attendance.status)) {
                 present++;
-            } else if (attendance.status === 'absent') {
+            } else if (['absent', 'casual-leave'].includes(attendance.status)) {
                 absent++;
             }
         });
@@ -264,121 +287,144 @@ const AttendanceEntry = () => {
         });
     };
 
+    const [activeMainTab, setActiveMainTab] = useState('mark');
     const stats = getStatistics();
-
-    if (showReport) {
-        return <AttendanceReport onBack={() => setShowReport(false)} />;
-    }
-
-
 
     return (
         <div>
             {modalContextHolder}
             {messageContextHolder}
-            <Card>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ margin: 0 }}>Mark Attendance</h2>
-                        <Space>
-                            <Button icon={<UserAddOutlined />} onClick={() => setSubstituteModalOpen(true)} disabled={isReadOnly}>
-                                Add Substitute
-                            </Button>
-                            <Button icon={<FileTextOutlined />} onClick={() => setShowReport(true)}>
-                                View Report
-                            </Button>
-                            <DateSelector
-                                value={selectedDate}
-                                onChange={setSelectedDate}
-                                disabled={isReadOnly}
-                            />
-                        </Space>
-                    </div>
+            <Tabs
+                activeKey={activeMainTab}
+                onChange={setActiveMainTab}
+                type="card"
+                style={{ marginBottom: 16 }}
+                items={[
+                    {
+                        key: 'mark',
+                        label: <span><PlusCircleOutlined /> Mark Attendance</span>,
+                        children: (
+                            <Card>
+                                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h2 style={{ margin: 0 }}>Mark Attendance</h2>
+                                        <Space>
+                                            <Button icon={<UserAddOutlined />} onClick={() => setSubstituteModalOpen(true)} disabled={isReadOnly}>
+                                                Add Substitute
+                                            </Button>
+                                            <Button icon={<FileTextOutlined />} onClick={() => setActiveMainTab('report')}>
+                                                View Report
+                                            </Button>
+                                            <DateSelector
+                                                value={selectedDate}
+                                                onChange={setSelectedDate}
+                                                disabled={isReadOnly}
+                                            />
+                                        </Space>
+                                    </div>
 
-                    {/* Summary */}
-                    {!loading && labourList.length > 0 && (
-                        <AttendanceSummary
-                            total={stats.total}
-                            present={stats.present}
-                            absent={stats.absent}
-                            unmarked={stats.unmarked}
-                        />
-                    )}
+                                    {/* Summary */}
+                                    {!loading && labourList.length > 0 && (
+                                        <AttendanceSummary
+                                            total={stats.total}
+                                            present={stats.present}
+                                            absent={stats.absent}
+                                            unmarked={stats.unmarked}
+                                        />
+                                    )}
 
-                    {/* Warning for unmarked */}
-                    {!loading && stats.unmarked > 0 && !isReadOnly && (
-                        <Alert
-                            message="Unmarked Labour"
-                            description={`${stats.unmarked} labour member${stats.unmarked > 1 ? 's' : ''} have no attendance marked for ${selectedDate.format('DD MMM YYYY')}.`}
-                            type="warning"
-                            showIcon
-                        />
-                    )}
+                                    {/* Warning for unmarked */}
+                                    {!loading && stats.unmarked > 0 && !isReadOnly && (
+                                        <Alert
+                                            message="Unmarked Labour"
+                                            description={`${stats.unmarked} labour member${stats.unmarked > 1 ? 's' : ''} have no attendance marked for ${selectedDate.format('DD MMM YYYY')}.`}
+                                            type="warning"
+                                            showIcon
+                                        />
+                                    )}
 
-                    {/* Quick Actions */}
-                    {!loading && !isReadOnly && labourList.length > 0 && (
-                        <Space>
-                            <Button onClick={() => handleMarkAll('present')} size="small">
-                                Mark All Present
-                            </Button>
-                            <Button onClick={() => handleMarkAll('absent')} size="small">
-                                Mark All Absent
-                            </Button>
-                        </Space>
-                    )}
+                                    {/* Quick Actions */}
+                                    {!loading && !isReadOnly && labourList.length > 0 && (
+                                        <Space>
+                                            <Button onClick={() => handleMarkAll('present')} size="small">
+                                                Mark All Present
+                                            </Button>
+                                            <Button onClick={() => handleMarkAll('absent')} size="small">
+                                                Mark All Absent
+                                            </Button>
+                                        </Space>
+                                    )}
 
-                    {/* Labour List */}
-                    {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                            <Spin size="large" />
-                        </div>
-                    ) : labourList.length === 0 ? (
-                        <Empty
-                            description="No active labour members found"
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        />
-                    ) : (
-                        <Card size="small" styles={{ body: { padding: 0 } }}>
-                            {labourList.map(labour => (
-                                <LabourAttendanceRow
-                                    key={labour._id}
-                                    labour={labour}
-                                    attendance={attendanceMap[labour._id]}
-                                    onStatusChange={handleStatusChange}
-                                    disabled={isReadOnly}
-                                />
-                            ))}
-                        </Card>
-                    )}
+                                    {/* Labour List */}
+                                    {loading ? (
+                                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                                            <Spin size="large" />
+                                        </div>
+                                    ) : labourList.length === 0 ? (
+                                        <Empty
+                                            description="No active labour members found"
+                                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                        />
+                                    ) : (
+                                        <Card size="small" styles={{ body: { padding: 0 } }}>
+                                            {labourList.map(labour => {
+                                                const clCountExcludingToday = getClCountExcludingToday(labour._id);
+                                                return (
+                                                    <LabourAttendanceRow
+                                                        key={labour._id}
+                                                        labour={labour}
+                                                        attendance={attendanceMap[labour._id]}
+                                                        onStatusChange={handleStatusChange}
+                                                        disabled={isReadOnly}
+                                                        casualLeaveDisabled={clCountExcludingToday >= 4}
+                                                    />
+                                                );
+                                            })}
+                                        </Card>
+                                    )}
 
-                    {/* Save Button */}
-                    {!loading && !isReadOnly && labourList.length > 0 && (
-                        <div style={{ textAlign: 'right' }}>
-                            <Button
-                                type="primary"
-                                size="large"
-                                icon={<SaveOutlined />}
-                                onClick={handleSave}
-                                loading={saving}
-                                disabled={stats.total === stats.unmarked} // Disable if nothing marked
-                            >
-                                Save Attendance ({stats.total - stats.unmarked} marked)
-                            </Button>
-                        </div>
-                    )}
+                                    {/* Save Button */}
+                                    {!loading && !isReadOnly && labourList.length > 0 && (
+                                        <div style={{ textAlign: 'right' }}>
+                                            <Button
+                                                type="primary"
+                                                size="large"
+                                                icon={<SaveOutlined />}
+                                                onClick={handleSave}
+                                                loading={saving}
+                                                disabled={stats.total === stats.unmarked} // Disable if nothing marked
+                                            >
+                                                Save Attendance ({stats.total - stats.unmarked} marked)
+                                            </Button>
+                                        </div>
+                                    )}
 
-                    {/* Read-only notice */}
-                    {isReadOnly && (
-                        <Alert
-                            message="View Only"
-                            description="You do not have permission to mark attendance."
-                            type="info"
-                            showIcon
-                        />
-                    )}
-                </Space>
-            </Card>
+                                    {/* Read-only notice */}
+                                    {isReadOnly && (
+                                        <Alert
+                                            message="View Only"
+                                            description="You do not have permission to mark attendance."
+                                            type="info"
+                                            showIcon
+                                        />
+                                    )}
+                                </Space>
+                            </Card>
+                        )
+                    },
+                    {
+                        key: 'review',
+                        label: <span><CalendarOutlined /> Review Payments & Attendance</span>,
+                        children: <AttendanceReview />
+                    },
+                    {
+                        key: 'report',
+                        label: <span><FileTextOutlined /> Monthly Matrix Report</span>,
+                        children: <AttendanceReport onBack={() => setActiveMainTab('mark')} />
+                    }
+                ]}
+            />
             <Modal
                 title="Add Substitute Labour (Daily Wage)"
                 open={substituteModalOpen}
@@ -397,6 +443,7 @@ const AttendanceEntry = () => {
                             { value: 'electrician', label: 'Electrician' },
                             { value: 'plumber', label: 'Plumber' },
                             { value: 'helper', label: 'Helper' },
+                            { value: 'staff', label: 'Staff' },
                             { value: 'other', label: 'Other' },
                         ]} />
                     </Form.Item>

@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 const whatsappService = require('@/services/whatsappService');
 const createCRUDController = require('@/controllers/middlewaresControllers/createCRUDController');
+const { logAuditAction } = require('@/modules/AuditLogModule');
 const methods = createCRUDController('Material');
 
 methods.adjustStock = async (req, res) => {
     try {
         const { id } = req.params;
-        const { type, quantity, reference, vehicleNumber, notes, date, project, usageCategory, villa, supplier, issuedBy, isDirect } = req.body; // type: 'inward' or 'outward', villa: villaId
+        const { type, quantity, reference, vehicleNumber, notes, date, project, usageCategory, villa, supplier, supplierCategory, issuedBy, isDirect, entryDate } = req.body; // type: 'inward' or 'outward', villa: villaId
 
         if (!['inward', 'outward'].includes(type)) {
             return res.status(400).json({ success: false, message: 'Invalid transaction type' });
@@ -242,7 +243,7 @@ methods.adjustStock = async (req, res) => {
         }
 
         // Create Transaction Record
-        await new InventoryTransaction({
+        const transactionRecord = await new InventoryTransaction({
             material: id,
             type,
             quantity: calculate.add(0, quantity), // ensure number
@@ -250,17 +251,43 @@ methods.adjustStock = async (req, res) => {
             ratePerUnit,
             totalCost,
             date: date || new Date(),
+            entryDate: entryDate || new Date(),
             reference,
             vehicleNumber,
             notes,
             project,
             villa,
             supplier,
+            supplierCategory,
             issuedBy,
             isDirect: !!isDirect,
             usageCategory: usageCategory || 'daily_work',
             performedBy: req.admin._id,
         }).save();
+
+        // Audit log (fail-safe, after success)
+        try {
+            logAuditAction({
+                req,
+                module: 'material',
+                action: type === 'inward' ? (villa ? 'transfer' : 'inward') : 'outward',
+                entityType: 'Material',
+                entityId: id,
+                metadata: {
+                    name: material.name,
+                    quantity,
+                    unit: material.unit,
+                    type,
+                    isDirect: !!isDirect,
+                    villa: villa ? (await mongoose.model('Villa').findById(villa))?.villaNumber : undefined,
+                    totalCost,
+                    ratePerUnit,
+                    transactionId: transactionRecord._id
+                }
+            });
+        } catch (auditErr) {
+            console.error('Failed to log audit action for adjustStock:', auditErr);
+        }
 
         return res.status(200).json({
             success: true,
@@ -588,6 +615,26 @@ methods.deleteTransaction = async (req, res) => {
         transaction.removed = true;
         await transaction.save();
         console.log('✓ Transaction soft-deleted');
+
+        // Audit log (fail-safe, after success)
+        try {
+            logAuditAction({
+                req,
+                module: 'material',
+                action: 'delete',
+                entityType: 'Material',
+                entityId: material._id,
+                metadata: {
+                    name: material.name,
+                    quantity: transaction.quantity,
+                    type: transaction.type,
+                    transactionId: transaction._id,
+                    notes: 'Undone/deleted transaction'
+                }
+            });
+        } catch (auditErr) {
+            console.error('Failed to log audit action for deleteTransaction:', auditErr);
+        }
 
         console.log(`=== UNDO TRANSACTION SUCCESS ===\n`);
 

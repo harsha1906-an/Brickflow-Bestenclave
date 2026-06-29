@@ -8,6 +8,47 @@ import { useUserRole } from '@/hooks/useUserRole';
 import useMoney from '@/settings/useMoney';
 import MaterialForm from '@/forms/MaterialForm';
 import dayjs from 'dayjs';
+import BillScanner from '@/components/BillScanner';
+
+const supplierTypeOptions = [
+    { value: 'cement', label: 'Cement' },
+    { value: 'aggregate', label: 'Aggregate (Sand, Gravel)' },
+    { value: 'stones_bolders', label: 'Size Stones / Bolders' },
+    { value: 'waterproofing_chemicals', label: 'Waterproofing Chemicals' },
+    { value: 'steel', label: 'Steel' },
+    { value: 'rods', label: 'Steel Rods/Bars (TMT)' },
+    { value: 'bricks', label: 'Bricks & Blocks' },
+    { value: 'tiles', label: 'Tiles & Flooring' },
+    { value: 'electrical', label: 'Electrical Items' },
+    { value: 'plumbing', label: 'Plumbing Items' },
+    { value: 'hardware', label: 'Hardware & Tools' },
+    { value: 'paint', label: 'Paint & Coating' },
+    { value: 'wood', label: 'Wood & Timber' },
+    { value: 'glass', label: 'Glass & Glazing' },
+    { value: 'sanitary', label: 'Sanitary Ware' },
+    { value: 'other', label: 'Other' },
+];
+
+const mapMaterialCategoryToSupplierType = (materialCategory) => {
+    if (!materialCategory) return undefined;
+    const cat = materialCategory.toLowerCase().trim();
+    if (cat.includes('cement')) return 'cement';
+    if (cat.includes('steel') || cat.includes('rod')) return 'steel';
+    if (cat.includes('stone') || cat.includes('bolder') || cat.includes('boulder')) return 'stones_bolders';
+    if (cat.includes('aggregate') || cat.includes('sand') || cat.includes('gravel') || cat.includes('jelly')) return 'aggregate';
+    if (cat.includes('brick') || cat.includes('block')) return 'bricks';
+    if (cat.includes('tile')) return 'tiles';
+    if (cat.includes('electrical')) return 'electrical';
+    if (cat.includes('plumbing')) return 'plumbing';
+    if (cat.includes('hardware') || cat.includes('tool')) return 'hardware';
+    if (cat.includes('paint')) return 'paint';
+    if (cat.includes('wood') || cat.includes('timber')) return 'wood';
+    if (cat.includes('glass')) return 'glass';
+    if (cat.includes('sanitary')) return 'sanitary';
+    if (cat.includes('waterproof') || cat.includes('chemical')) return 'waterproofing_chemicals';
+    return 'other';
+};
+
 
 export default function InventoryList() {
     const [data, setData] = useState([]);
@@ -38,6 +79,14 @@ export default function InventoryList() {
     useEffect(() => {
         fetchData();
     }, [villaFilter]);
+
+    useEffect(() => {
+        if (stockModal.open) {
+            fetchSuppliers();
+            fetchProjects();
+            fetchVillas();
+        }
+    }, [stockModal.open]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -106,7 +155,7 @@ export default function InventoryList() {
         return matchesCategory && matchesSearch;
     });
 
-    const categories = ['Cement', 'Steel', 'Aggregates', 'Bricks/Blocks', 'Electrical', 'Plumbing', 'Paint', 'Wood', 'Other'];
+    const categories = ['Cement', 'Steel', 'Aggregates', 'Bricks/Blocks', 'Size Stones / Bolders', 'Waterproofing Chemicals', 'Electrical', 'Plumbing', 'Paint', 'Wood', 'Other'];
 
     const columns = [
         { title: 'Material', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
@@ -258,7 +307,11 @@ export default function InventoryList() {
                 dataSource={filteredData}
                 rowKey="_id"
                 loading={loading}
-                pagination={{ pageSize: 10 }}
+                pagination={{
+                    defaultPageSize: 10,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['10', '20', '50', '100']
+                }}
             />
 
             {/* Create Material Modal */}
@@ -295,7 +348,7 @@ export default function InventoryList() {
 
             {/* History Modal */}
             <Modal title={`History: ${historyModal.material?.name}`} open={historyModal.open} onCancel={() => setHistoryModal({ open: false, material: null, data: [] })} footer={null} width={1000}>
-                <HistoryTable data={historyModal.data} material={historyModal.material} canEdit={canEdit} onDelete={handleDelete} />
+                <HistoryTable data={historyModal.data} material={historyModal.material} canEdit={canEdit} onDelete={handleDelete} villaFilter={villaFilter} />
             </Modal>
 
             <ReportModal
@@ -368,6 +421,19 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
     const selectedVilla = villas.find(v => v._id === villaFilter);
 
     const [directToVilla, setDirectToVilla] = useState(false);
+    const selectedSupplierId = Form.useWatch('supplier', form);
+
+    const availableCategories = React.useMemo(() => {
+        if (!selectedSupplierId || !suppliers) return [];
+        const supplierObj = suppliers.find(s => s._id === selectedSupplierId);
+        if (!supplierObj || !supplierObj.supplierType) return [];
+
+        const types = Array.isArray(supplierObj.supplierType)
+            ? supplierObj.supplierType
+            : [supplierObj.supplierType];
+
+        return supplierTypeOptions.filter(opt => types.includes(opt.value));
+    }, [selectedSupplierId, suppliers]);
 
     useEffect(() => {
         if (open) {
@@ -378,6 +444,21 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
             }
         }
     }, [open, selectedVilla]);
+
+    useEffect(() => {
+        if (selectedSupplierId && availableCategories.length > 0) {
+            const materialDefaultCat = mapMaterialCategoryToSupplierType(material?.category);
+            const hasDefaultMatch = availableCategories.some(cat => cat.value === materialDefaultCat);
+
+            if (hasDefaultMatch) {
+                form.setFieldsValue({ supplierCategory: materialDefaultCat });
+            } else {
+                form.setFieldsValue({ supplierCategory: availableCategories[0].value });
+            }
+        } else {
+            form.setFieldsValue({ supplierCategory: undefined });
+        }
+    }, [selectedSupplierId, availableCategories, material, form]);
 
     const handleSubmit = async () => {
         try {
@@ -403,7 +484,8 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                     type: finalType,
                     isDirect: directToVilla,
                     totalCost,
-                    date: values.date.format('YYYY-MM-DD')
+                    date: values.date.format('YYYY-MM-DD'),
+                    entryDate: values.entryDate ? values.entryDate.format('YYYY-MM-DD HH:mm:ss') : undefined
                 }
             });
             message.success('Stock updated');
@@ -425,6 +507,37 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
         >
             {material && (
                 <Form form={form} layout="vertical">
+                    {/* Bill Scanner Button - Only for Inward/Purchases */}
+                    {isInward && (
+                        <Form.Item style={{ marginBottom: 16, textAlign: 'right' }}>
+                            <BillScanner onScanSuccess={(data) => {
+                                if (data) {
+                                    const updates = {};
+                                    if (data.invoiceNumber) {
+                                        updates.reference = data.invoiceNumber;
+                                    }
+                                    
+                                    if (data.items && data.items.length > 0) {
+                                        const item = data.items[0];
+                                        updates.quantity = item.quantity;
+                                        updates.ratePerUnit = item.rate;
+                                    } else if (data.totalAmount) {
+                                        updates.ratePerUnit = data.totalAmount;
+                                        updates.quantity = 1;
+                                    }
+
+                                    let noteText = `Auto-scanned from bill. Supplier: ${data.supplierName || 'Unknown'}`;
+                                    if (data.taxAmount) {
+                                        noteText += ` | GST: ${data.taxAmount}`;
+                                    }
+                                    updates.notes = noteText;
+
+                                    form.setFieldsValue(updates);
+                                    message.success('Form pre-filled with scanned bill data!');
+                                }
+                            }} />
+                        </Form.Item>
+                    )}
                     {/* Show Global Stock Info when transferring to villa OR issuing materials */}
                     <Form.Item noStyle shouldUpdate={(prev, curr) => prev.villa !== curr.villa}>
                         {({ getFieldValue }) => {
@@ -454,7 +567,10 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
 
 
                     {/* ... Date and Qty ... */}
-                    <Form.Item name="date" label="Date" initialValue={dayjs()} rules={[{ required: true }]}>
+                    <Form.Item name="entryDate" label="Entry Date (System Detected)" initialValue={dayjs()}>
+                        <DatePicker style={{ width: '100%' }} disabled />
+                    </Form.Item>
+                    <Form.Item name="date" label={isInward ? "Arrival Date" : "Issue Date"} initialValue={dayjs()} rules={[{ required: true }]}>
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                     <Form.Item name="quantity" label={`Quantity (${material.unit})`} rules={[{ required: true }]}>
@@ -491,7 +607,10 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
 
                     {/* Villa Selection with Toggle */}
                     {isInward && (
-                        <Form.Item label="Direct to Villa?">
+                        <Form.Item 
+                            label="Direct Purchase to Villa?" 
+                            tooltip="Turn ON if you are buying directly from an external supplier for this Villa. Leave OFF to transfer stock from the Global warehouse."
+                        >
                             <Switch checked={directToVilla} onChange={setDirectToVilla} />
                         </Form.Item>
                     )}
@@ -528,11 +647,25 @@ function StockAdjustmentModal({ data, projects, villas, suppliers, onCancel, onS
                                 const villaSelected = selectedVilla || getFieldValue('villa');
                                 const showSupplier = !villaSelected || directToVilla;
                                 return showSupplier ? (
-                                    <Form.Item name="supplier" label="Supplier">
-                                        <Select placeholder="Select Supplier" allowClear showSearch optionFilterProp="children">
-                                            {suppliers?.map(s => <Select.Option key={s._id} value={s._id}>{s.name}</Select.Option>)}
-                                        </Select>
-                                    </Form.Item>
+                                    <>
+                                        <Form.Item name="supplier" label="Supplier">
+                                            <Select placeholder="Select Supplier" allowClear showSearch optionFilterProp="children">
+                                                {suppliers?.map(s => (
+                                                    <Select.Option key={s._id} value={s._id}>{s.name}</Select.Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                        
+                                        {selectedSupplierId && (
+                                            <Form.Item name="supplierCategory" label="Supplier Category" rules={[{ required: true, message: 'Please select a category!' }]}>
+                                                <Select placeholder="Select Supplier Category" allowClear>
+                                                    {availableCategories.map(opt => (
+                                                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        )}
+                                    </>
                                 ) : null;
                             }}
                         </Form.Item>
@@ -609,13 +742,7 @@ function ReportModal({ open, onCancel, villas }) {
             } else {
                 const blob = new Blob([response.data], { type: 'application/pdf' });
                 const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `InventoryReport_${Date.now()}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
+                window.open(url, '_blank');
                 onCancel();
             }
         } catch (e) {
@@ -653,19 +780,40 @@ function ReportModal({ open, onCancel, villas }) {
 }
 
 // History Table Component with Pricing
-function HistoryTable({ data, material, canEdit, onDelete }) {
+function HistoryTable({ data, material, canEdit, onDelete, villaFilter }) {
     const { moneyFormatter } = useMoney();
 
     return (
         <Table
             dataSource={data}
             rowKey="_id"
-            pagination={{ pageSize: 10 }}
+            pagination={{
+                defaultPageSize: 10,
+                showSizeChanger: true,
+                pageSizeOptions: ['10', '20', '50', '100']
+            }}
             scroll={{ x: 1000 }}
             columns={[
-                { title: 'Date', dataIndex: 'date', width: 110, render: d => dayjs(d).format('DD MMM YYYY') },
-                { title: 'Type', dataIndex: 'type', width: 70, render: t => t === 'inward' ? <Tag color="green">IN</Tag> : <Tag color="red">OUT</Tag> },
-                { title: 'Supplier', dataIndex: 'supplier', width: 150, render: s => s?.name || '-' },
+                { title: 'Arrival/Issue Date', dataIndex: 'date', width: 130, render: d => dayjs(d).format('DD MMM YYYY') },
+                { title: 'Entry Date (Detected)', dataIndex: 'entryDate', width: 160, render: d => d ? dayjs(d).format('DD MMM YYYY HH:mm') : '-' },
+                { 
+                    title: 'Type', 
+                    key: 'type', 
+                    width: 120, 
+                    render: (_, r) => {
+                        if (r.usageCategory === 'transfer') {
+                            const isVillaView = villaFilter && villaFilter !== 'all';
+                            return isVillaView ? <Tag color="cyan">TRANSFER IN</Tag> : <Tag color="orange">TRANSFER OUT</Tag>;
+                        }
+                        return r.type === 'inward' ? <Tag color="green">IN</Tag> : <Tag color="red">OUT</Tag>;
+                    } 
+                },
+                {
+                    title: 'Supplier',
+                    key: 'supplier',
+                    width: 150,
+                    render: (_, r) => r.supplier?.name ? `${r.supplier.name}${r.supplierCategory ? ` (${r.supplierCategory.toUpperCase()})` : ''}` : '-'
+                },
                 { title: 'Qty', dataIndex: 'quantity', width: 100, render: q => <b>{q} {material?.unit}</b> },
                 { title: 'Rate/Unit', dataIndex: 'ratePerUnit', width: 110, render: rate => rate ? moneyFormatter({ amount: rate }) : '-' },
                 { title: 'Total Cost', dataIndex: 'totalCost', width: 120, render: cost => cost ? <b>{moneyFormatter({ amount: cost })}</b> : '-' },

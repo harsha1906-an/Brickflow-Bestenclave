@@ -2,7 +2,7 @@ import { Radio, Tag, Space, InputNumber, Input } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, ClockCircleOutlined, FieldTimeOutlined } from '@ant-design/icons';
 import { useMoney } from '@/settings';
 
-const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled = false }) => {
+const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled = false, casualLeaveDisabled = false }) => {
     const { status, otHours, advanceDeduction, penalty, miscWorkDescription } = attendance;
     const isMarked = status !== null && status !== undefined;
     const { moneyFormatter } = useMoney();
@@ -15,6 +15,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
         if (status === 'absent') return <Tag icon={<CloseCircleOutlined />} color="error">Absent</Tag>;
         if (status === 'half-day') return <Tag icon={<FieldTimeOutlined />} color="processing">Half Day</Tag>;
         if (status === 'overtime') return <Tag icon={<ClockCircleOutlined />} color="purple">Overtime</Tag>;
+        if (status === 'casual-leave') return <Tag icon={<CheckCircleOutlined />} color="blue">Casual Leave</Tag>;
         return null;
     };
 
@@ -24,6 +25,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
             electrician: 'Electrician',
             plumber: 'Plumber',
             helper: 'Helper',
+            staff: 'Staff',
             other: 'Other'
         };
         return skillMap[skill] || skill;
@@ -59,6 +61,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
                         <Radio.Button value="present">Present</Radio.Button>
                         <Radio.Button value="half-day">Half Day</Radio.Button>
                         <Radio.Button value="overtime">Overtime</Radio.Button>
+                        <Radio.Button value="casual-leave" disabled={casualLeaveDisabled}>Casual Leave</Radio.Button>
                         <Radio.Button value="absent">Absent</Radio.Button>
                     </Radio.Group>
 

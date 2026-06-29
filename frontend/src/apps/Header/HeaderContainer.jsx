@@ -16,6 +16,7 @@ import useResponsive from '@/hooks/useResponsive';
 
 // Deleted InstallApp code for clarity
 import ThemeToggle from '@/components/ThemeToggle';
+import GlobalSearch from '@/components/GlobalSearch';
 
 export default function HeaderContent() {
   const currentAdmin = useSelector(selectCurrentAdmin);
@@ -100,6 +101,8 @@ export default function HeaderContent() {
         position: 'relative',
       }}
     >
+      <GlobalSearch isMobile={isMobile} />
+
       <div style={{ position: 'absolute', right: isMobile ? '60px' : '170px' }}>
 {/* Deleted usage */}
       </div>

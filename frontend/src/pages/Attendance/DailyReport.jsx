@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Card, DatePicker, Row, Col, Statistic, Spin, message, Button, Space, Table, Tag, Divider, Modal, Progress, Form, Input, Select, InputNumber } from 'antd';
+import { Card, DatePicker, Row, Col, Statistic, Spin, message, Button, Space, Table, Tag, Divider, Modal, Progress, Form, Input, Select, InputNumber, Checkbox } from 'antd';
 import { ArrowLeftOutlined, ReloadOutlined, WalletOutlined, BuildOutlined, UserOutlined, DownloadOutlined, EuroOutlined, DollarOutlined, PrinterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { request } from '@/request';
 import { useAppContext } from '@/context/appContext';
 import { useMoney } from '@/settings';
+import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
+import storePersist from '@/redux/storePersist';
 
 const DailyReport = () => {
     const [messageApi, contextHolder] = message.useMessage();
@@ -67,13 +69,7 @@ const DailyReport = () => {
             // Handle direct blob response headers
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `DailyReport_${dateStr}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
 
             // Close modal after short delay
             setTimeout(() => {
@@ -126,13 +122,7 @@ const DailyReport = () => {
             // Handle direct blob response headers
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `DailyReport_${startDate}_to_${endDate}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
 
             // Close modal after short delay
             setTimeout(() => {
@@ -181,13 +171,7 @@ const DailyReport = () => {
 
             const blob = new Blob([response.data], { type: 'application/pdf' });
             const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `TaxReport_${startDate}_to_${endDate}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            window.open(url, '_blank');
 
             setTimeout(() => {
                 setDownloading(false);
@@ -202,15 +186,96 @@ const DailyReport = () => {
         }
     };
 
-    // Expense Modal Logic
     const [expenseModalOpen, setExpenseModalOpen] = useState(false);
     const [expenseForm] = Form.useForm();
+    
+    const [useCalculator, setUseCalculator] = useState(false);
+    const [calcRate, setCalcRate] = useState(0);
+    const [calcHours, setCalcHours] = useState(0);
+    const [calcBetta, setCalcBetta] = useState(0);
+    const [calcExtra, setCalcExtra] = useState(0);
+    const [calcAdvance, setCalcAdvance] = useState(0);
+    const [calcBalance, setCalcBalance] = useState(0);
+
+    useEffect(() => {
+        if (useCalculator) {
+            const calculatedTotal = (calcRate || 0) * (calcHours || 0) + (calcBetta || 0) + (calcExtra || 0);
+            const calculatedAmount = Math.max(0, calculatedTotal - (calcAdvance || 0) - (calcBalance || 0));
+            expenseForm.setFieldsValue({ 
+                amount: calculatedAmount,
+                totalAmount: calculatedTotal,
+                advance: calcAdvance,
+                balance: calcBalance,
+                betta: calcBetta,
+                extra: calcExtra
+            });
+        }
+    }, [calcRate, calcHours, calcBetta, calcExtra, calcAdvance, calcBalance, useCalculator, expenseForm]);
+
+    const amount = Form.useWatch('amount', expenseForm);
+    const totalAmount = Form.useWatch('totalAmount', expenseForm);
+    const advance = Form.useWatch('advance', expenseForm);
+    const balance = Form.useWatch('balance', expenseForm);
+
+    useEffect(() => {
+        if (!useCalculator) {
+            const currentTotal = parseFloat(totalAmount) || 0;
+            const currentAdvance = parseFloat(advance) || 0;
+            const currentBalance = parseFloat(balance) || 0;
+            expenseForm.setFieldsValue({ amount: Math.max(0, currentTotal - currentAdvance - currentBalance) });
+        }
+    }, [totalAmount, advance, balance, useCalculator, expenseForm]);
+
+    const handleDownloadVoucher = async (expenseId) => {
+        if (!expenseId) return;
+        try {
+            messageApi.open({ type: 'loading', content: 'Generating Voucher...', key: 'voucher_download' });
+            
+            const auth = storePersist.get('auth');
+            const token = auth?.current?.token;
+            
+            const downloadUrl = `${DOWNLOAD_BASE_URL}expense/expense-${expenseId}.pdf`;
+            
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to download voucher');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            
+            messageApi.open({ type: 'success', content: 'Voucher Generated', key: 'voucher_download' });
+        } catch (error) {
+            console.error('Voucher download error:', error);
+            messageApi.open({ type: 'error', content: 'Failed to download voucher.', key: 'voucher_download' });
+        }
+    };
+
     const handleAddExpense = () => {
         setExpenseModalOpen(true);
+        setUseCalculator(false);
+        setCalcRate(0);
+        setCalcHours(0);
+        setCalcBetta(0);
+        setCalcExtra(0);
+        setCalcAdvance(0);
+        setCalcBalance(0);
         expenseForm.resetFields();
         expenseForm.setFieldsValue({
             date: date,
-            paymentMode: 'Cash'
+            paymentMode: 'Cash',
+            totalAmount: 0,
+            advance: 0,
+            balance: 0,
+            betta: 0,
+            extra: 0
         });
     };
 
@@ -372,6 +437,7 @@ const DailyReport = () => {
                         <Card title="Daily Transactions Log" size="small" style={{ marginTop: 16 }}>
                             <Table
                                 rowKey="key"
+                                className="mobile-card-table"
                                 columns={[
                                     {
                                         title: 'Type',
@@ -403,6 +469,24 @@ const DailyReport = () => {
                                                 {record.type === 'income' ? '+' : '-'}{moneyFormatter({ amount })}
                                             </span>
                                         )
+                                    },
+                                    {
+                                        title: 'Action',
+                                        key: 'action',
+                                        render: (_, record) => {
+                                            if (record.type === 'expense' && ['Supplier', 'Labour', 'Other'].includes(record.category) && record._id) {
+                                                return (
+                                                    <Button 
+                                                        size="small" 
+                                                        icon={<DownloadOutlined />} 
+                                                        onClick={() => handleDownloadVoucher(record._id)}
+                                                    >
+                                                        Voucher
+                                                    </Button>
+                                                );
+                                            }
+                                            return '-';
+                                        }
                                     }
                                 ]}
                                 dataSource={(summary.items || []).map((item, idx) => ({ ...item, key: idx }))}
@@ -429,8 +513,131 @@ const DailyReport = () => {
                     <Form.Item name="otherRecipient" label="Payee Name (e.g. JCB Service)" rules={[{ required: true, message: 'Please enter payee name' }]}>
                         <Input placeholder="Enter name of person/service" />
                     </Form.Item>
-                    <Form.Item name="amount" label="Amount" rules={[{ required: true }]}>
-                        <InputNumber style={{ width: '100%' }} min={0} />
+                    <div style={{ marginBottom: '15px' }}>
+                        <Checkbox 
+                            checked={useCalculator} 
+                            onChange={(e) => setUseCalculator(e.target.checked)}
+                        >
+                            Use Hourly / Qty Calculator
+                        </Checkbox>
+                    </div>
+
+                    {useCalculator && (
+                        <div style={{ background: 'rgba(24, 144, 255, 0.05)', border: '1px solid rgba(24, 144, 255, 0.3)', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+                            <h4 style={{ margin: '0 0 10px 0', color: '#1890ff' }}>Hourly / Qty Calculator</h4>
+                            <Row gutter={16} style={{ marginBottom: '10px' }}>
+                                <Col span={12}>
+                                    <Form.Item label="Rate per Hour/Unit" required style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcRate}
+                                            onChange={(val) => setCalcRate(val || 0)}
+                                            placeholder="Rate"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item label="Hours / Quantity" required style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcHours}
+                                            onChange={(val) => setCalcHours(val || 0)}
+                                            placeholder="Hours/Qty"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16} style={{ marginBottom: '10px' }}>
+                                <Col span={12}>
+                                    <Form.Item label="Betta" style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcBetta}
+                                            onChange={(val) => setCalcBetta(val || 0)}
+                                            placeholder="Betta"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item label="Extra Charge" style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcExtra}
+                                            onChange={(val) => setCalcExtra(val || 0)}
+                                            placeholder="Extra"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item label="Advance" style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcAdvance}
+                                            onChange={(val) => setCalcAdvance(val || 0)}
+                                            placeholder="Advance"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item label="Balance" style={{ marginBottom: 0 }}>
+                                        <InputNumber
+                                            min={0}
+                                            style={{ width: '100%' }}
+                                            value={calcBalance}
+                                            onChange={(val) => setCalcBalance(val || 0)}
+                                            placeholder="Balance"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <Form.Item label="Total Amount" name="totalAmount" style={{ flex: 1 }} initialValue={0}>
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                    </div>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <Form.Item label="Advance Paid" name="advance" style={{ flex: 1 }} initialValue={0}>
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                        <Form.Item label="Balance Remaining" name="balance" style={{ flex: 1 }} initialValue={0}>
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                    </div>
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <Form.Item label="Betta" name="betta" style={{ flex: 1 }} initialValue={0}>
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                        <Form.Item label="Extra" name="extra" style={{ flex: 1 }} initialValue={0}>
+                            <InputNumber
+                                min={0}
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                    </div>
+                    <Form.Item name="amount" label="Amount (Net Paid)" rules={[{ required: true }]}>
+                        <InputNumber style={{ width: '100%' }} min={0} disabled={useCalculator} />
                     </Form.Item>
                     <Form.Item name="description" label="Description">
                         <Input.TextArea rows={2} />
@@ -470,7 +677,7 @@ const DailyReport = () => {
                 <div style={{ textAlign: 'center', padding: '20px' }}>
                     <p>Please wait while we generate your PDF report...</p>
                     <Progress type="circle" percent={progress} status={progress === 100 ? "success" : "active"} />
-                    <div style={{ marginTop: 10 }}>{progress === 100 ? "Download Complete!" : "Processing..."}</div>
+                    <div style={{ marginTop: 10 }}>{progress === 100 ? "Report Generated!" : "Processing..."}</div>
                 </div>
             </Modal>
         </Card>

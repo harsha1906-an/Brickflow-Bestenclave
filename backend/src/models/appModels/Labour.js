@@ -16,7 +16,7 @@ const LabourSchema = new mongoose.Schema({
     },
     skill: {
         type: String,
-        enum: ['mason', 'electrician', 'plumber', 'helper', 'other'],
+        enum: ['mason', 'electrician', 'plumber', 'helper', 'staff', 'other'],
         required: true
     },
     isActive: {

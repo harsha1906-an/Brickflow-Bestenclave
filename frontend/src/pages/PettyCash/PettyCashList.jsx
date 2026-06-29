@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Tag, Form, Input, InputNumber, App, Card, Row, Col, Statistic, DatePicker } from 'antd';
-import { PlusOutlined, MinusOutlined, WalletOutlined, PrinterOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusOutlined, WalletOutlined, PrinterOutlined, DownloadOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 import { useUserRole } from '@/hooks/useUserRole';
 import { request } from '@/request';
@@ -96,14 +96,9 @@ const PettyCashList = () => {
 
             const blob = await downloadRes.blob();
             const downloadUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode.removeChild(link);
+            window.open(downloadUrl, '_blank');
 
-            message.success({ content: 'Report downloaded successfully', key: 'reporting' });
+            message.success({ content: 'Report generated successfully', key: 'reporting' });
         } catch (error) {
             message.error({ content: error.message || 'Failed to download report', key: 'reporting' });
         }
@@ -142,6 +137,41 @@ const PettyCashList = () => {
         }
     };
 
+    const handleDownloadVoucher = async (transactionId) => {
+        if (!transactionId) return;
+        try {
+            message.loading({ content: 'Generating Voucher...', key: 'voucher_download' });
+            
+            const auth = storePersist.get('auth');
+            const token = auth?.current?.token;
+            
+            const baseUrl = import.meta.env.VITE_BACKEND_SERVER.endsWith('/')
+                ? import.meta.env.VITE_BACKEND_SERVER
+                : import.meta.env.VITE_BACKEND_SERVER + '/';
+            const downloadUrl = `${baseUrl}download/pettycashtransaction/pettycashtransaction-${transactionId}.pdf`;
+            
+            const response = await fetch(downloadUrl, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'ngrok-skip-browser-warning': 'true',
+                },
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to download voucher');
+            }
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            window.open(url, '_blank');
+            
+            message.success({ content: 'Voucher Opened', key: 'voucher_download' });
+        } catch (error) {
+            console.error('Voucher download error:', error);
+            message.error({ content: 'Failed to download voucher.', key: 'voucher_download' });
+        }
+    };
+
     const columns = [
         { title: 'Date', dataIndex: 'date', key: 'date', render: (date) => dayjs(date).format('DD/MM/YYYY') },
         { title: 'Description', dataIndex: 'name', key: 'name' },
@@ -163,6 +193,19 @@ const PettyCashList = () => {
         },
         { title: 'Receipt #', dataIndex: 'receiptNumber', key: 'receiptNumber' },
         { title: 'Notes', dataIndex: 'note', key: 'note' },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Button 
+                    type="link" 
+                    icon={<DownloadOutlined />} 
+                    onClick={() => handleDownloadVoucher(record._id)}
+                >
+                    Voucher
+                </Button>
+            )
+        }
     ];
 
     return (

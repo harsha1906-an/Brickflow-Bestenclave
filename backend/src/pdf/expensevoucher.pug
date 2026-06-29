@@ -21,23 +21,27 @@ html
       }
       .container {
         width: 100%;
-        height: 142mm;
-        padding: 5pt 20pt;
+        height: 140mm;
+        padding: 8pt 20pt;
         position: relative;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
       }
       .brand-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         margin-bottom: 0pt;
       }
       .logo-box {
-        width: 120pt;
+        width: 150pt;
       }
       .logo-img {
         width: 100%;
-        height: auto;
+        max-height: 80pt;
+        object-fit: contain;
       }
       .company-title {
         text-align: center;
@@ -46,11 +50,11 @@ html
       .company-title h1 {
         margin: 0;
         color: #f7941d;
-        font-size: 22pt;
+        font-size: 20pt;
         text-transform: uppercase;
       }
       .company-title p {
-        margin: 2pt 0;
+        margin: 1.5pt 0;
         font-size: 8pt;
         color: #666;
       }
@@ -63,7 +67,7 @@ html
       }
       .voucher-label {
         color: #f7941d;
-        font-size: 24pt;
+        font-size: 22pt;
         font-weight: bold;
         text-transform: uppercase;
       }
@@ -73,7 +77,7 @@ html
       }
       .meta-table td {
         border: 1.5pt solid #f7941d;
-        padding: 4pt 8pt;
+        padding: 3pt 6pt;
         font-size: 9pt;
       }
       .meta-label {
@@ -90,8 +94,9 @@ html
       }
       .main-form td {
         border: 1pt solid #f7941d;
-        padding: 4pt 10pt;
+        padding: 4pt 8pt;
         vertical-align: middle;
+        font-size: 9.5pt;
       }
       .field-row {
         display: flex;
@@ -118,11 +123,11 @@ html
       }
       .footer-grid td {
         border: 1pt solid #f7941d;
-        padding: 2pt 10pt;
+        padding: 3pt 8pt;
         font-size: 8.5pt;
       }
       .sig-box {
-        height: 45pt;
+        height: 38pt;
         vertical-align: bottom !important;
         text-align: center;
         width: 30%;
@@ -151,10 +156,10 @@ html
           if logo
             img.logo-img(src=logo)
           else
-            div(style="font-weight:bold; color:#f7941d; font-size:18pt") #{settings.construction_company_name || 'BEST CONSTRUCTIONS'}
+            div(style="font-weight:bold; color:#f7941d; font-size:18pt") #{settings.company_name || settings.construction_company_name || 'BEST CONSTRUCTIONS'}
         .company-title
-          h1 #{settings.construction_company_name || 'BEST CONSTRUCTIONS'}
-          p #{settings.construction_address || 'Tamil Nadu, India'}
+          h1 #{settings.company_name || settings.construction_company_name || 'BEST CONSTRUCTIONS'}
+          p #{settings.company_address || settings.construction_address || 'Tamil Nadu, India'}
           if settings.company_gstin || settings.construction_gstin
             p GSTIN: #{settings.company_gstin || settings.construction_gstin}
           p Cell: #{settings.company_phone || '99524 52139, 73391 11784'}
@@ -170,10 +175,7 @@ html
             td #{model.date ? moment(model.date).format(dateFormat) : '-'}
           tr
             td.meta-label Rs.
-            - let pen = model.penalty || 0;
-            - let adv = model.advance || 0;
-            - let amt = model.amount || 0;
-            - let finalCash = amt - adv;
+            - let finalCash = model.totalAmount !== undefined ? model.totalAmount : (model.amount || 0);
             td(style="font-weight:bold; font-size:11pt") #{moneyFormatter({amount: finalCash})}
 
       table.main-form
@@ -189,6 +191,8 @@ html
                   | #{model.labour.name}
                 else if model.recipientType === 'Supplier' && model.supplier
                   | #{model.supplier.name}
+                else if model.recipientType === 'Other'
+                  | #{model.otherRecipient || model.description || 'N/A'}
                 else
                   | #{model.description || 'N/A'}
         tr
@@ -199,27 +203,43 @@ html
         - 
           let penalty = model.penalty || 0;
           let advance = model.advance || 0;
+          let balance = model.balance || 0;
           let amount = model.amount || 0; 
           let taxAmount = model.taxAmount || 0;
-          let grossAmount = amount + penalty; 
-          let netAmount = amount - advance;
-          let hasDeductions = penalty > 0 || advance > 0;
+          let discount = model.discount || 0;
+          let roundOff = model.roundOff || 0;
+          let isSupplier = model.recipientType === 'Supplier';
+          
+          let startAmount = isSupplier ? amount : (model.totalAmount || (amount + advance + balance + penalty));
+          let finalPaidAmount = isSupplier ? (model.totalAmount !== undefined ? model.totalAmount : amount) : amount;
+          
+          let hasDeductions = penalty > 0 || advance > 0 || balance > 0 || discount > 0 || roundOff !== 0;
           
         if hasDeductions || taxAmount > 0
-          tr(style="height: 30pt")
+          tr(style="height: 22pt")
             td(style="vertical-align: top; border-bottom: none")
               .field-label Particulars:
               div(style="margin-top: 2pt; padding-left: 10pt; font-size: 9pt") #{model.description || '-'}
             td(style="border-bottom: none") 
           
           tr
-            td(style="text-align: right; padding-right: 10pt; font-size: 9pt") Full Payment Value (Gross)
-            td(style="text-align: center;") #{moneyFormatter({amount: grossAmount})}
+            td(style="text-align: right; padding-right: 10pt; font-size: 9pt") #{isSupplier ? 'Base Amount (Gross)' : 'Full Payment Value (Gross)'}
+            td(style="text-align: center;") #{moneyFormatter({amount: startAmount})}
 
           if taxAmount > 0
             tr
               td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Add: #{model.taxType || 'GST'}
               td(style="text-align: center;") #{moneyFormatter({amount: taxAmount})}
+
+          if discount > 0
+            tr
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Less: Discount
+              td(style="text-align: center;") #{moneyFormatter({amount: discount})}
+
+          if roundOff !== 0
+            tr
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Round Off Adjustment
+              td(style="text-align: center;") #{moneyFormatter({amount: roundOff})}
 
           if penalty > 0
             tr
@@ -231,9 +251,14 @@ html
               td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Less: Advance Deduction
               td(style="text-align: center;") #{moneyFormatter({amount: advance})}
           
+          if balance > 0
+            tr
+              td(style="text-align: right; padding-right: 10pt; font-style: italic; font-size: 9pt") Less: Balance Remaining
+              td(style="text-align: center;") #{moneyFormatter({amount: balance})}
+          
           tr
             td(style="text-align: right; padding-right: 10pt; font-weight: bold") Net Amount Paid
-            td(style="text-align: center; font-weight: bold") #{moneyFormatter({amount: netAmount})}
+            td(style="text-align: center; font-weight: bold") #{moneyFormatter({amount: finalPaidAmount})}
 
           tr.rupees-row
             td
@@ -242,16 +267,16 @@ html
                 .field-value(style="font-style: italic; font-size: 9pt") #{model.inWords || '-'} Only
             td(style="background: #f0f0f0; text-align: center; font-weight: bold;")
               div(style="font-size: 8pt") Total Value
-              div #{moneyFormatter({amount: grossAmount})}
+              div #{moneyFormatter({amount: finalPaidAmount})}
 
         else
-          tr(style="height: 50pt")
+          tr(style="height: 42pt")
             td(style="vertical-align: top;")
               .field-label Particulars:
               div(style="margin-top: 5pt; padding-left: 20pt;") #{model.description || '-'}
             td(style="text-align: center; font-weight: bold;") 
               div(style="border-bottom: 1px solid #f7941d; margin-bottom: 5pt; padding-bottom: 2pt") Amount
-              div #{moneyFormatter({amount: grossAmount})}
+              div #{moneyFormatter({amount: finalPaidAmount})}
           tr.rupees-row
             td
               .field-row
@@ -259,7 +284,7 @@ html
                 .field-value(style="font-style: italic; font-size: 9pt") #{model.inWords || '-'} Only
             td(style="background: #f0f0f0; text-align: center; font-weight: bold;")
               div(style="font-size: 8pt") Total Value
-              div #{moneyFormatter({amount: grossAmount})}
+              div #{moneyFormatter({amount: finalPaidAmount})}
 
       table.footer-grid
         tr

@@ -103,10 +103,12 @@ app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, attendanceApiRoute
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, reportingApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, bookingApiRouter);
 app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, require('./routes/appRoutes/auditLogApi'));
+app.use('/api', adminAuth.isValidAuthToken, tenantMiddleware, require('./routes/appRoutes/billApi'));
 app.use('/api/chat', adminAuth.isValidAuthToken, tenantMiddleware, chatApiRouter);
 app.use('/api/analytics', adminAuth.isValidAuthToken, tenantMiddleware, analyticsApiRouter);
 app.use('/api/whatsapp', adminAuth.isValidAuthToken, tenantMiddleware, whatsappApiRouter);
 app.use('/download', adminAuth.isValidAuthToken, tenantMiddleware, coreDownloadRouter);
+app.use('/api/download', adminAuth.isValidAuthToken, tenantMiddleware, coreDownloadRouter);
 app.use('/public', corePublicRouter);
 
 // If that above routes didnt work, we 404 them and forward to error handler

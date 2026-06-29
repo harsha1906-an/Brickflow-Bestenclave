@@ -45,18 +45,18 @@ const create = async (req, res) => {
 
         if (material) {
             // Update Stock
-            const oldQuantity = material.quantity || 0;
-            const newQuantity = oldQuantity + (Number(item.quantityReceived) || 0);
-
-            await Material.findByIdAndUpdate(material._id, { quantity: newQuantity });
+            material.currentStock = (material.currentStock || 0) + (Number(item.quantityReceived) || 0);
+            await material.save();
 
             // Create Transaction Log
             await new InventoryTransaction({
                 material: material._id,
                 quantity: Number(item.quantityReceived),
-                type: 'in', // IN
-                reason: `Goods Receipt ${number}`,
-                admin: userId,
+                type: 'inward',
+                reference: `Goods Receipt ${number}`,
+                remainingQuantity: Number(item.quantityReceived),
+                performedBy: userId,
+                date: date || new Date(),
             }).save();
         }
         // If material not found, we just record the GRN but can't update stock of unknown item

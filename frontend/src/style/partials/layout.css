@@ -39,15 +39,15 @@
     margin-top: 65px !important;
   }
 
-  /* Force vertical stacking on mobile */
-  .ant-row {
+  /* Force vertical stacking on mobile unless explicitly marked as horizontal inline */
+  .ant-row:not(.mobile-horizontal) {
     flex-direction: column !important;
     flex-wrap: nowrap !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
   }
 
-  .ant-col {
+  .ant-col:not(.mobile-col-inline) {
     max-width: 100% !important;
     width: 100% !important;
     flex: 0 0 100% !important;
@@ -55,6 +55,15 @@
     padding-left: 0 !important;
     padding-right: 0 !important;
     margin-bottom: 12px;
+  }
+
+  /* Hide ProLayout default mobile hamburger and collapse triggers */
+  .ant-pro-global-header-collapsed-button,
+  .ant-pro-header-mobile-menu-button,
+  .ant-pro-global-header-trigger,
+  .ant-pro-global-header-collapsed-button-mobile,
+  .ant-pro-header-collapsed-button {
+    display: none !important;
   }
 }
 
