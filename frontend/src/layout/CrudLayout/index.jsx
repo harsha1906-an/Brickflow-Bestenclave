@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import DefaultLayout from '../DefaultLayout';
 
 import SidePanel from '@/components/SidePanel';
-import { Layout } from 'antd';
+import { Layout, Grid } from 'antd';
 import { useCrudContext } from '@/context/crud';
 import { useAppContext } from '@/context/appContext';
 
 const { Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const ContentBox = ({ children }) => {
   const { state: stateCrud, crudContextAction } = useCrudContext();
@@ -36,14 +37,21 @@ const ContentBox = ({ children }) => {
   //     panel.close();
   //   }
   // }, [isNavMenuClose]);
+
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
+
   return (
     <Content
-      className="whiteBox shadow layoutPadding"
+      className={isMobile ? "layoutPadding" : "whiteBox shadow layoutPadding"}
       style={{
-        margin: '30px auto',
+        margin: isMobile ? '0 auto' : '30px auto',
         width: '100%',
         maxWidth: '100%',
         flex: 'none',
+        background: isMobile ? 'transparent' : undefined,
+        border: isMobile ? 'none' : undefined,
+        boxShadow: isMobile ? 'none' : undefined
       }}
     >
       {children}
