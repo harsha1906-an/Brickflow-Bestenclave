@@ -13,11 +13,15 @@ import AttendanceReport from './AttendanceReport';
 import AttendanceReview from './AttendanceReview';
 import DailyReport from './DailyReport';
 import { useMoney } from '@/settings';
+import useMobile from '@/hooks/useMobile';
+import { useThemeContext } from '@/context/ThemeContext';
 
 // Remove static destructuring
 // const { confirm } = Modal;
 
 const AttendanceEntry = () => {
+    const isMobile = useMobile();
+    const { isDarkMode } = useThemeContext();
     const [modal, modalContextHolder] = Modal.useModal();
     const [messageApi, messageContextHolder] = message.useMessage();
     const { currency_symbol } = useMoney();
@@ -289,40 +293,142 @@ const AttendanceEntry = () => {
 
     const [activeMainTab, setActiveMainTab] = useState('mark');
     const stats = getStatistics();
-
     return (
         <div>
             {modalContextHolder}
             {messageContextHolder}
+
+            {/* Custom Mobile Action Tabs matching prototype */}
+            {isMobile && (
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '8px' }} className="no-scrollbar">
+                <button 
+                  onClick={() => setActiveMainTab('mark')}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    border: activeMainTab === 'mark' ? '1px solid #0084ff' : '1px solid #e2e8f0',
+                    background: activeMainTab === 'mark' ? '#f0f9ff' : '#ffffff',
+                    color: activeMainTab === 'mark' ? '#0084ff' : '#64748b',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Mark Attendance
+                </button>
+                <button 
+                  onClick={() => setActiveMainTab('review')}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    border: activeMainTab === 'review' ? '1px solid #0084ff' : '1px solid #e2e8f0',
+                    background: activeMainTab === 'review' ? '#f0f9ff' : '#ffffff',
+                    color: activeMainTab === 'review' ? '#0084ff' : '#64748b',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Review Payments
+                </button>
+                <button 
+                  onClick={() => setActiveMainTab('report')}
+                  style={{
+                    whiteSpace: 'nowrap',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    border: activeMainTab === 'report' ? '1px solid #0084ff' : '1px solid #e2e8f0',
+                    background: activeMainTab === 'report' ? '#f0f9ff' : '#ffffff',
+                    color: activeMainTab === 'report' ? '#0084ff' : '#64748b',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Monthly Report
+                </button>
+              </div>
+            )}
+
             <Tabs
                 activeKey={activeMainTab}
                 onChange={setActiveMainTab}
                 type="card"
+                renderTabBar={isMobile ? () => <></> : undefined}
                 style={{ marginBottom: 16 }}
                 items={[
                     {
                         key: 'mark',
                         label: <span><PlusCircleOutlined /> Mark Attendance</span>,
                         children: (
-                            <Card>
+                            <Card style={{ border: isMobile ? 'none' : undefined, background: isMobile ? 'transparent' : undefined }} styles={{ body: { padding: isMobile ? 0 : undefined } }}>
                                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                                     {/* Header */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h2 style={{ margin: 0 }}>Mark Attendance</h2>
-                                        <Space>
-                                            <Button icon={<UserAddOutlined />} onClick={() => setSubstituteModalOpen(true)} disabled={isReadOnly}>
-                                                Add Substitute
-                                            </Button>
-                                            <Button icon={<FileTextOutlined />} onClick={() => setActiveMainTab('report')}>
-                                                View Report
-                                            </Button>
+                                    {isMobile ? (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {/* Title and Add Substitute */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Mark Attendance</h2>
+                                          <Button 
+                                            type="text" 
+                                            icon={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>} 
+                                            onClick={() => setSubstituteModalOpen(true)}
+                                            disabled={isReadOnly}
+                                            style={{ color: '#0084ff', fontWeight: '700', padding: '4px 8px', height: 'auto', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                          >
+                                            Substitute
+                                          </Button>
+                                        </div>
+
+                                        {/* Date Selector & Today/Yesterday */}
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+                                          <div style={{ flex: 1 }} className="mobile-horizontal">
                                             <DateSelector
-                                                value={selectedDate}
-                                                onChange={setSelectedDate}
-                                                disabled={isReadOnly}
+                                              value={selectedDate}
+                                              onChange={setSelectedDate}
+                                              disabled={isReadOnly}
                                             />
-                                        </Space>
-                                    </div>
+                                          </div>
+                                          <Button 
+                                            onClick={() => setSelectedDate(dayjs())}
+                                            style={{ borderRadius: '8px', fontSize: '13px', height: '40px', fontWeight: '500' }}
+                                          >
+                                            Today
+                                          </Button>
+                                          <Button 
+                                            onClick={() => setSelectedDate(dayjs().subtract(1, 'day'))}
+                                            style={{ borderRadius: '8px', fontSize: '13px', height: '40px', fontWeight: '500' }}
+                                          >
+                                            Yesterday
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <h2 style={{ margin: 0 }}>Mark Attendance</h2>
+                                          <Space>
+                                              <Button icon={<UserAddOutlined />} onClick={() => setSubstituteModalOpen(true)} disabled={isReadOnly}>
+                                                  Add Substitute
+                                              </Button>
+                                              <Button icon={<FileTextOutlined />} onClick={() => setActiveMainTab('report')}>
+                                                  View Report
+                                              </Button>
+                                              <DateSelector
+                                                  value={selectedDate}
+                                                  onChange={setSelectedDate}
+                                                  disabled={isReadOnly}
+                                              />
+                                          </Space>
+                                      </div>
+                                    )}
 
                                     {/* Summary */}
                                     {!loading && labourList.length > 0 && (
@@ -346,14 +452,31 @@ const AttendanceEntry = () => {
 
                                     {/* Quick Actions */}
                                     {!loading && !isReadOnly && labourList.length > 0 && (
-                                        <Space>
-                                            <Button onClick={() => handleMarkAll('present')} size="small">
-                                                Mark All Present
+                                        isMobile ? (
+                                          <div style={{ display: 'flex', gap: '12px', width: '100%', padding: '0 4px' }}>
+                                            <Button 
+                                              onClick={() => handleMarkAll('present')} 
+                                              style={{ flex: 1, height: '40px', borderRadius: '10px', fontWeight: '600', color: '#1e293b', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                                            >
+                                              Mark All Present
                                             </Button>
-                                            <Button onClick={() => handleMarkAll('absent')} size="small">
-                                                Mark All Absent
+                                            <Button 
+                                              onClick={() => handleMarkAll('absent')} 
+                                              style={{ flex: 1, height: '40px', borderRadius: '10px', fontWeight: '600', color: '#1e293b', border: '1px solid #e2e8f0', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
+                                            >
+                                              Mark All Absent
                                             </Button>
-                                        </Space>
+                                          </div>
+                                        ) : (
+                                          <Space>
+                                              <Button onClick={() => handleMarkAll('present')} size="small">
+                                                  Mark All Present
+                                              </Button>
+                                              <Button onClick={() => handleMarkAll('absent')} size="small">
+                                                  Mark All Absent
+                                              </Button>
+                                          </Space>
+                                        )
                                     )}
 
                                     {/* Labour List */}
@@ -367,7 +490,7 @@ const AttendanceEntry = () => {
                                             image={Empty.PRESENTED_IMAGE_SIMPLE}
                                         />
                                     ) : (
-                                        <Card size="small" styles={{ body: { padding: 0 } }}>
+                                        <div style={{ background: 'transparent', padding: 0 }} className="mobile-cards-list-container">
                                             {labourList.map(labour => {
                                                 const clCountExcludingToday = getClCountExcludingToday(labour._id);
                                                 return (
@@ -381,23 +504,61 @@ const AttendanceEntry = () => {
                                                     />
                                                 );
                                             })}
-                                        </Card>
+                                        </div>
                                     )}
 
                                     {/* Save Button */}
                                     {!loading && !isReadOnly && labourList.length > 0 && (
-                                        <div style={{ textAlign: 'right' }}>
+                                        isMobile ? (
+                                          <div style={{
+                                            position: 'fixed',
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+                                            borderTop: isDarkMode ? '1px solid #333' : '1px solid #eee',
+                                            padding: '12px 16px',
+                                            zIndex: 1000,
+                                            boxShadow: '0 -4px 10px rgba(0, 0, 0, 0.05)',
+                                            paddingBottom: 'calc(12px + safe-area-inset-bottom)'
+                                          }}>
                                             <Button
                                                 type="primary"
                                                 size="large"
                                                 icon={<SaveOutlined />}
                                                 onClick={handleSave}
                                                 loading={saving}
-                                                disabled={stats.total === stats.unmarked} // Disable if nothing marked
+                                                disabled={stats.total === stats.unmarked}
+                                                style={{
+                                                  width: '100%',
+                                                  height: '48px',
+                                                  borderRadius: '12px',
+                                                  fontWeight: 'bold',
+                                                  fontSize: '15px',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  gap: '8px',
+                                                  boxShadow: '0 4px 12px rgba(24, 144, 255, 0.2)'
+                                                }}
                                             >
                                                 Save Attendance ({stats.total - stats.unmarked} marked)
                                             </Button>
-                                        </div>
+                                          </div>
+                                        ) : (
+                                          <div style={{ textAlign: 'right' }}>
+                                              <Button
+                                                  type="primary"
+                                                  size="large"
+                                                  icon={<SaveOutlined />}
+                                                  onClick={handleSave}
+                                                  loading={saving}
+                                                  disabled={stats.total === stats.unmarked} // Disable if nothing marked
+                                              >
+                                                  Save Attendance ({stats.total - stats.unmarked} marked)
+                                              </Button>
+                                          </div>
+                                        )
                                     )}
 
                                     {/* Read-only notice */}
