@@ -32,31 +32,27 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
     };
 
     return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '12px 16px',
-            borderBottom: '1px solid #333',
-        }}>
-            <div style={{ flex: '0 0 200px' }}>
-                <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="attendance-row">
+            <div className="attendance-name-sec">
+                <div className="attendance-name-title">
                     {labour.name}
                     {labour.isSubstitute && <Tag color="blue" style={{ margin: 0 }}>Substitute</Tag>}
                 </div>
-                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{getSkillLabel(labour.skill)}</div>
-                {labour.dailyWage && <div style={{ fontSize: '11px', color: '#52c41a' }}>{moneyFormatter({ amount: labour.dailyWage })}/day</div>}
+                <div className="attendance-skill-subtitle">{getSkillLabel(labour.skill)}</div>
+                {labour.dailyWage && <div className="attendance-wage-badge">{moneyFormatter({ amount: labour.dailyWage })}/day</div>}
             </div >
-            <div style={{ flex: '0 0 100px' }}>
+            <div className="attendance-badge-sec">
                 {getStatusBadge()}
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="attendance-controls-sec">
+                <div className="attendance-radio-container">
                     <Radio.Group
                         value={status}
                         onChange={(e) => onStatusChange(labour._id, { status: e.target.value })}
                         disabled={disabled}
                         buttonStyle="solid"
                         size="small"
+                        className="attendance-status-radios"
                     >
                         <Radio.Button value="present">Present</Radio.Button>
                         <Radio.Button value="half-day">Half Day</Radio.Button>
@@ -71,18 +67,18 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
                             min={0.5}
                             max={8}
                             step={0.5}
-                            placeholder="OT Hours"
+                            placeholder="OT"
                             value={otHours}
                             onChange={(val) => onStatusChange(labour._id, { otHours: val })}
                             disabled={disabled}
                             addonAfter="Hrs"
-                            style={{ width: 100 }}
+                            className="attendance-ot-input"
                         />
                     )}
                 </div>
 
                 {status && status !== 'absent' && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div className="attendance-adjustments-grid">
                         <InputNumber
                             size="small"
                             min={0}
@@ -92,7 +88,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
                             disabled={disabled}
                             prefix="-"
                             addonBefore="Advance"
-                            style={{ width: 130 }}
+                            className="attendance-adj-input"
                         />
                         <InputNumber
                             size="small"
@@ -103,7 +99,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
                             disabled={disabled}
                             prefix="-"
                             addonBefore="Penalty"
-                            style={{ width: 130 }}
+                            className="attendance-adj-input"
                         />
                         <Input
                             size="small"
@@ -111,7 +107,7 @@ const LabourAttendanceRow = ({ labour, attendance = {}, onStatusChange, disabled
                             value={miscWorkDescription}
                             onChange={(e) => onStatusChange(labour._id, { miscWorkDescription: e.target.value })}
                             disabled={disabled}
-                            style={{ flex: 1, minWidth: 150 }}
+                            className="attendance-desc-input"
                         />
                     </div>
                 )}
