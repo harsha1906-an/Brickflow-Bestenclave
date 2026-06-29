@@ -554,16 +554,6 @@ export default function DataTable({ config, extra = [], customFilters }) {
           </div>
         )}
 
-        {/* Refresh & CSV Buttons Row (compact icons) */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', justifyContent: 'flex-end' }}>
-          <Button size="small" onClick={handelDataTableLoad} icon={<RedoOutlined />}>
-            {translate('Refresh')}
-          </Button>
-          <Button size="small" onClick={handleDownloadCSV} icon={<DownloadOutlined />}>
-            {translate('Download CSV')}
-          </Button>
-        </div>
-
         {/* Mobile Card List */}
         {listIsLoading ? (
           <div style={{ padding: '40px 0', textAlign: 'center' }}>

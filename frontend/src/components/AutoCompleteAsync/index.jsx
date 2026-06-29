@@ -19,6 +19,7 @@ export default function AutoCompleteAsync({
   value, /// this is for update
   onChange, /// this is for update
   placeholder,
+  style,
 }) {
   const translate = useLanguage();
 
@@ -129,7 +130,7 @@ export default function AutoCompleteAsync({
         setSearching(false);
       }}
       onChange={handleSelectChange}
-      style={{ minWidth: '220px' }}
+      style={style || { minWidth: '220px' }}
       // onSelect={handleOnSelect}
     >
       {selectOptions.map((optionField) => (
