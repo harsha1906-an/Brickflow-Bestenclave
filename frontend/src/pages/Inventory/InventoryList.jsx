@@ -62,9 +62,48 @@ export default function InventoryList() {
     const [stockModal, setStockModal] = useState({ open: false, type: null, material: null });
     const [historyModal, setHistoryModal] = useState({ open: false, material: null, data: [] });
     const [editModal, setEditModal] = useState({ open: false, material: null });
+    const [editTxModal, setEditTxModal] = useState({ open: false, transaction: null, material: null });
+    const [editTxForm] = Form.useForm();
 
     const { role } = useUserRole();
     const canEdit = role === 'OWNER' || role === 'ENGINEER'; // Engineers need to issue stock
+
+    useEffect(() => {
+        if (editTxModal.open && editTxModal.transaction) {
+            editTxForm.setFieldsValue({
+                ratePerUnit: editTxModal.transaction.ratePerUnit,
+                reference: editTxModal.transaction.reference,
+                notes: editTxModal.transaction.notes,
+            });
+        }
+    }, [editTxModal.open, editTxModal.transaction, editTxForm]);
+
+    const handleEditTxSubmit = async () => {
+        try {
+            const values = await editTxForm.validateFields();
+            const totalCost = (values.ratePerUnit || 0) * (editTxModal.transaction.quantity || 0);
+            const res = await request.update({
+                entity: 'inventorytransaction',
+                id: editTxModal.transaction._id,
+                jsonData: {
+                    ...values,
+                    totalCost,
+                }
+            });
+            if (res.success) {
+                message.success('Transaction updated successfully');
+                setEditTxModal({ open: false, transaction: null, material: null });
+                fetchData();
+                if (historyModal.material) {
+                    openHistory(historyModal.material);
+                }
+            } else {
+                message.error(res.message || 'Failed to update transaction');
+            }
+        } catch (e) {
+            message.error('Failed to update transaction');
+        }
+    };
 
     const [villas, setVillas] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
@@ -348,8 +387,38 @@ export default function InventoryList() {
 
             {/* History Modal */}
             <Modal title={`History: ${historyModal.material?.name}`} open={historyModal.open} onCancel={() => setHistoryModal({ open: false, material: null, data: [] })} footer={null} width={1000}>
-                <HistoryTable data={historyModal.data} material={historyModal.material} canEdit={canEdit} onDelete={handleDelete} villaFilter={villaFilter} />
+                <HistoryTable data={historyModal.data} material={historyModal.material} canEdit={canEdit} onDelete={handleDelete} onEdit={(tx) => setEditTxModal({ open: true, transaction: tx, material: historyModal.material })} villaFilter={villaFilter} />
             </Modal>
+
+            {/* Edit Transaction Modal */}
+            {editTxModal.open && (
+                <Modal
+                    title={`Update Transaction Cost: ${editTxModal.material?.name}`}
+                    open={editTxModal.open}
+                    onCancel={() => setEditTxModal({ open: false, transaction: null, material: null })}
+                    onOk={handleEditTxSubmit}
+                    destroyOnClose={true}
+                >
+                    <Form form={editTxForm} layout="vertical">
+                        <div style={{ marginBottom: 16 }}>
+                            <b>Quantity:</b> {editTxModal.transaction?.quantity} {editTxModal.material?.unit}
+                        </div>
+                        <Form.Item
+                            name="ratePerUnit"
+                            label="Rate per Unit (₹)"
+                            rules={[{ required: true, message: 'Please enter the rate per unit' }]}
+                        >
+                            <InputNumber style={{ width: '100%' }} min={0} precision={2} placeholder="Enter rate per unit" />
+                        </Form.Item>
+                        <Form.Item name="reference" label="Reference / Invoice No">
+                            <Input placeholder="Enter invoice or PO number" />
+                        </Form.Item>
+                        <Form.Item name="notes" label="Notes">
+                            <Input.TextArea rows={2} placeholder="Add any details about this delivery" />
+                        </Form.Item>
+                    </Form>
+                </Modal>
+            )}
 
             <ReportModal
                 open={isReportModalOpen}
@@ -780,7 +849,7 @@ function ReportModal({ open, onCancel, villas }) {
 }
 
 // History Table Component with Pricing
-function HistoryTable({ data, material, canEdit, onDelete, villaFilter }) {
+function HistoryTable({ data, material, canEdit, onDelete, onEdit, villaFilter }) {
     const { moneyFormatter } = useMoney();
 
     return (
@@ -826,16 +895,27 @@ function HistoryTable({ data, material, canEdit, onDelete, villaFilter }) {
                     title: 'Action',
                     key: 'action',
                     fixed: 'right',
-                    width: 80,
+                    width: 120,
                     render: (_, record) => (
-                        <Tooltip title="Undo / Delete Transaction">
-                            <Button
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() => onDelete(record)}
-                            />
-                        </Tooltip>
+                        <Space size="small">
+                            {record.type === 'inward' && (
+                                <Tooltip title="Edit Rate/Unit">
+                                    <Button
+                                        type="text"
+                                        icon={<EditOutlined style={{ color: '#1890ff' }} />}
+                                        onClick={() => onEdit(record)}
+                                    />
+                                </Tooltip>
+                            )}
+                            <Tooltip title="Undo / Delete Transaction">
+                                <Button
+                                    type="text"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => onDelete(record)}
+                                />
+                            </Tooltip>
+                        </Space>
                     )
                 }] : [])
             ]}

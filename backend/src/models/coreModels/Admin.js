@@ -6,6 +6,11 @@ const adminSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  companyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    index: true,
+  },
   enabled: {
     type: Boolean,
     default: false,

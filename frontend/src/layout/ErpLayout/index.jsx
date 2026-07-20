@@ -15,7 +15,7 @@ export default function ErpLayout({ children }) {
         style={{
           margin: isMobile ? '0 auto' : '30px auto',
           width: '100%',
-          maxWidth: '1100px',
+          maxWidth: '100%',
           minHeight: isMobile ? 'auto' : '600px',
           padding: isMobile ? '8px 0px' : undefined,
           background: isMobile ? 'transparent' : undefined,

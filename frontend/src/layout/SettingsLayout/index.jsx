@@ -41,7 +41,7 @@ export default function SettingsLayout({
           padding: '30px 40px',
           margin: '0px auto',
           width: '100%',
-          maxWidth: '1100px',
+          maxWidth: '100%',
         }}
       >
         <Row gutter={[24, 24]}>

@@ -13,7 +13,7 @@ export default function ProfileModule({ config }) {
             padding: '50px 40px',
             margin: '100px auto',
             width: '100%',
-            maxWidth: '1100px',
+            maxWidth: '100%',
           }}
         >
           <Profile config={config} />

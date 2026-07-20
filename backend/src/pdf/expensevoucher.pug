@@ -173,10 +173,7 @@ html
           tr
             td.meta-label Date:
             td #{model.date ? moment(model.date).format(dateFormat) : '-'}
-          tr
-            td.meta-label Rs.
-            - let finalCash = model.totalAmount !== undefined ? model.totalAmount : (model.amount || 0);
-            td(style="font-weight:bold; font-size:11pt") #{moneyFormatter({amount: finalCash})}
+
 
       table.main-form
         colgroup

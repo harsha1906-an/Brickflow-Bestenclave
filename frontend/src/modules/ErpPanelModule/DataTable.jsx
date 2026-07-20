@@ -12,7 +12,7 @@ import {
   ArrowLeftOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
-import { Dropdown, Table, Button, App, Pagination, Skeleton } from 'antd'; // Added App import
+import { Dropdown, Table, Button, App, Pagination, Skeleton, Card } from 'antd'; // Added App, Card import
 import { PageHeader } from '@ant-design/pro-layout';
 import axios from 'axios'; // Added axios import
 

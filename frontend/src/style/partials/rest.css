@@ -21,6 +21,16 @@ body {
   margin: 0;
   padding: 0;
   transition: background-color 0.3s ease;
+  zoom: 0.9;
+}
+
+@supports not (zoom: 1) {
+  html {
+    transform: scale(0.9);
+    transform-origin: 0 0;
+    width: 111.11%;
+    height: 111.11%;
+  }
 }
 
 body.dark-theme {

@@ -808,7 +808,7 @@ export default function ScanBills() {
                                                     </Form.Item>
                                                 </Col>
                                                 <Col span={12}>
-                                                    <Form.Item name="ratePerUnit" label="Rate per Unit (₹)" rules={[{ required: true }]}>
+                                                    <Form.Item name="ratePerUnit" label="Rate per Unit (₹)">
                                                         <InputNumber style={{ width: '100%' }} min={0} />
                                                     </Form.Item>
                                                 </Col>
